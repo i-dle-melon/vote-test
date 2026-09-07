@@ -1276,8 +1276,7 @@ html {
 <div id="rotateWarning" class="orientation-warning">
     <div class="warning-content">
         <img src="https://i-dle-melon.github.io/vote/icon/NEVERLAND.jpg" alt="" class="guide-img">
-<p><b>公告：</b>提早存票依過期：最早半年～最晚1個月前存票。<br>事前存票優先順序：依照每日任務。<br>
-實時存票：Higher只需存250紅鑽。</p>
+<p id="page-announcement"></p>
     </div>
 </div>
 
@@ -3310,18 +3309,22 @@ style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px; text-d
 <!-- 公告彈窗 -->
 <div id="notice-modal" class="modal-overlay" style="display: none;">
     <div class="notice-modal-content">
-        <h3>📢 最新公告</h3>
+        <h3 id="announcement-title">📢 最新公告</h3>
         <div class="notice-body">
-            <p><b>※</b>娟lo回歸！請開始存票哦！<br><b>人歌的事前投票開放囉。</b></p>
-            <p class="update-version">網頁更新v1.0.3 _ _ _ 2026.09.07<br>-新增♪ Tiktok 引用刷音源教學。<br>網頁更新v1.0.2 _ _ _ 2026.09.02<br>-新增人氣歌謠(SBS)事前投票是要提前一周投票提醒。<br>網頁更新v1.0.1 _ _ _ 2026.08.20<br>-新增Kakao網頁註冊點讚教學。<br>-新增彈窗最新公告</p>
+            <div id="announcement-main"></div>
+            <div id="announcement-updates" class="update-version"></div>
         </div>
-<!-- 新增：底部操作區（包含勾選框與關閉按鈕） -->
+
         <div class="notice-footer">
             <label class="dont-show-label">
                 <input type="checkbox" id="dont-show-today">
                 不再提醒
             </label>
-        <button id="close-notice-btn" class="notice-close-btn">我知道了</button>
+
+            <button id="close-notice-btn" class="notice-close-btn">
+                我知道了
+            </button>
+        </div>
     </div>
 </div>
 </div>
@@ -3455,7 +3458,8 @@ function scrollToTop() {
     });
 }
 // 設定試算表 CSV 發布網址
-const SPREADSHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQrrQmNaPZEiutOwd0S5B8vY_HLa8EMXQC9eH6gtSlcK6ClfQIW4djWdmYZ0Ru7cQN7Xt0Aq6wlKy7j/pub?output=csv';
+const SPREADSHEET_CSV_URL =
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQrrQmNaPZEiutOwd0S5B8vY_HLa8EMXQC9eH6gtSlcK6ClfQIW4djWdmYZ0Ru7cQN7Xt0Aq6wlKy7j/pub?gid=2067200108&single=true&output=csv';
 let events = {};
 let currentDate = new Date(); // 記錄當前顯示的日期 (預設為今天)
 
@@ -3886,46 +3890,180 @@ const GALLERY_DATA = {
 
 
 // 💡 每次更新公告內容時，修改此版本號即可讓所有人重新收到一次公告
-const ANNOUNCEMENT_ID = 'notice_v1.0.2'; 
 
-document.addEventListener('DOMContentLoaded', function() {
+/*************************************************
+ * 公告系統
+ *
+ * 前端只讀「已發布公告」分頁。
+ * GID: 2067200108
+ *
+ * 編輯區：
+ * - 編輯彈窗最新公告
+ * - 編輯投票教學置頂公告
+ *
+ * 只有按下試算表的「🚀 發布公告」後，
+ * 已發布公告才會更新，前端才會同步新內容。
+ *************************************************/
+
+let publishedAnnouncement = {
+    announcement_title: '📢 最新公告',
+    announcement_main: '',
+    announcement_updates: '',
+    announcement_version: '',
+    page_announcement: ''
+};
+
+async function loadPublishedAnnouncement() {
+    try {
+        const url = SPREADSHEET_CSV_URL + '&_t=' + Date.now();
+
+        const response = await fetch(url, {
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            throw new Error('公告資料讀取失敗：HTTP ' + response.status);
+        }
+
+        const csvText = await response.text();
+
+        if (typeof Papa === 'undefined') {
+            throw new Error('找不到 PapaParse。');
+        }
+
+        Papa.parse(csvText, {
+            skipEmptyLines: true,
+            complete: function(results) {
+                const data = {};
+
+                results.data.forEach(function(row) {
+                    if (!row || row.length < 3) return;
+
+                    // 只讀 B、C 欄
+                    const key = String(row[1] || '').trim();
+                    const value = String(row[2] || '');
+
+                    if (key) {
+                        data[key] = value;
+                    }
+                });
+
+                publishedAnnouncement = {
+                    announcement_title:
+                        data.announcement_title || '📢 最新公告',
+
+                    announcement_main:
+                        data.announcement_main || '',
+
+                    announcement_updates:
+                        data.announcement_updates || '',
+
+                    announcement_version:
+                        data.announcement_version || '',
+
+                    page_announcement:
+                        data.page_announcement || ''
+                };
+
+                renderPublishedAnnouncement();
+                renderPageAnnouncement();
+                checkPublishedAnnouncement();
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ 無法讀取已發布公告：', error);
+    }
+}
+
+function renderPublishedAnnouncement() {
+    const title = document.getElementById('announcement-title');
+    const main = document.getElementById('announcement-main');
+    const updates = document.getElementById('announcement-updates');
+
+    if (title) {
+        title.innerHTML =
+            publishedAnnouncement.announcement_title || '📢 最新公告';
+    }
+
+    if (main) {
+        main.innerHTML =
+            publishedAnnouncement.announcement_main || '';
+    }
+
+    if (updates) {
+        updates.innerHTML =
+            publishedAnnouncement.announcement_updates || '';
+    }
+}
+
+function renderPageAnnouncement() {
+    const element = document.getElementById('page-announcement');
+
+    if (!element) return;
+
+    element.innerHTML =
+        publishedAnnouncement.page_announcement || '';
+}
+
+function checkPublishedAnnouncement() {
     const noticeModal = document.getElementById('notice-modal');
     const closeBtn = document.getElementById('close-notice-btn');
     const dontShowCheckbox = document.getElementById('dont-show-today');
 
-    // 檢查使用者是否已經勾選過「不再提醒」
-    const hasOptedOut = localStorage.getItem('hide_announcement') === ANNOUNCEMENT_ID ||
-                        sessionStorage.getItem('hide_announcement') === ANNOUNCEMENT_ID;
+    if (!noticeModal) return;
 
-    // 若未勾選過不再提醒，則開啟彈窗
-    if (!hasOptedOut && noticeModal) {
+    const announcementId =
+        publishedAnnouncement.announcement_version;
+
+    if (!announcementId) {
+        console.warn('⚠️ 已發布公告沒有 announcement_version');
+        return;
+    }
+
+    const hideAnnouncement =
+        localStorage.getItem('hide_announcement');
+
+    const sessionHideAnnouncement =
+        sessionStorage.getItem('hide_announcement');
+
+    const hasOptedOut =
+        hideAnnouncement === announcementId ||
+        sessionHideAnnouncement === announcementId;
+
+    if (!hasOptedOut) {
         noticeModal.style.display = 'flex';
     }
 
-    // 點擊「我知道了」關閉按鈕
     if (closeBtn) {
-        closeBtn.addEventListener('click', function() {
-            if (noticeModal) noticeModal.style.display = 'none';
+        closeBtn.onclick = function() {
+            noticeModal.style.display = 'none';
 
-            // 只有當使用者「勾選了不再提醒」才寫入快取紀錄
             if (dontShowCheckbox && dontShowCheckbox.checked) {
                 try {
-                    localStorage.setItem('hide_announcement', ANNOUNCEMENT_ID);
-                } catch (e) {
-                    sessionStorage.setItem('hide_announcement', ANNOUNCEMENT_ID);
+                    localStorage.setItem(
+                        'hide_announcement',
+                        announcementId
+                    );
+                } catch (error) {
+                    sessionStorage.setItem(
+                        'hide_announcement',
+                        announcementId
+                    );
                 }
             }
-        });
+        };
     }
 
-    // 點擊背景空白處關閉
-    if (noticeModal) {
-        noticeModal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeBtn.click();
-            }
-        });
-    }
+    noticeModal.onclick = function(event) {
+        if (event.target === noticeModal && closeBtn) {
+            closeBtn.click();
+        }
+    };
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadPublishedAnnouncement();
 });
 
 </script>
