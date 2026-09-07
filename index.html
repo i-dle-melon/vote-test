@@ -3458,8 +3458,10 @@ function scrollToTop() {
     });
 }
 // 設定試算表 CSV 發布網址
-const SPREADSHEET_CSV_URL =
-    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQrrQmNaPZEiutOwd0S5B8vY_HLa8EMXQC9eH6gtSlcK6ClfQIW4djWdmYZ0Ru7cQN7Xt0Aq6wlKy7j/pub?gid=2067200108&single=true&output=csv';
+const SPREADSHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQrrQmNaPZEiutOwd0S5B8vY_HLa8EMXQC9eH6gtSlcK6ClfQIW4djWdmYZ0Ru7cQN7Xt0Aq6wlKy7j/pub?output=csv';
+
+// 公告只讀「已發布公告」分頁（GID 2067200108）
+const ANNOUNCEMENT_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQrrQmNaPZEiutOwd0S5B8vY_HLa8EMXQC9eH6gtSlcK6ClfQIW4djWdmYZ0Ru7cQN7Xt0Aq6wlKy7j/pub?gid=2067200108&single=true&output=csv';
 let events = {};
 let currentDate = new Date(); // 記錄當前顯示的日期 (預設為今天)
 
@@ -3915,7 +3917,7 @@ let publishedAnnouncement = {
 
 async function loadPublishedAnnouncement() {
     try {
-        const url = SPREADSHEET_CSV_URL + '&_t=' + Date.now();
+        const url = ANNOUNCEMENT_CSV_URL + '&_t=' + Date.now();
 
         const response = await fetch(url, {
             cache: 'no-store'
