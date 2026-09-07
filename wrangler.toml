@@ -1,0 +1,7 @@
+name = "wispy-wind-f5df"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+[[kv_namespaces]]
+binding = "i-dle-vote"
+id = "c31ea9fb031742deaf017aa520a2eec6"

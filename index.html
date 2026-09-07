@@ -1,0 +1,4228 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>i-dle* 追榜打歌投票應援指南</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+html {
+    scroll-behavior: smooth; /* 讓網頁所有跳轉都變成滑動特效 */
+}
+        /* 基礎暗黑風格設定 */
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* 讓整個網頁底盤強制撐滿螢幕高度，配合 footer 的 margin-top: auto 就能完美貼底 */
+            }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #00cd3c; /* 經典應援綠 */
+        }
+
+        header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #00cd3c; /* 經典應援綠 */
+        }
+
+        header p {
+            color: #aaa;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        /* 專屬header.weight-header調整該標題的間距 */
+        header.weight-header {
+            padding-top: 5px !important;    /* 縮減上方留白，與按鈕拉近 */
+            padding-bottom: 15px;           /* 保持與下方進度條的適當距離 */
+            }
+
+        /* 專屬header-title調整該標題的間距 */
+        .header-title {
+            font-size: 1rem;   /* 放大成標題大小 */
+            font-weight: bold;   /* 粗體 */
+            color: #00c853;      /* 綠色 */
+            margin-left: 10px;   /* 與按鈕保持距離 */
+        }
+
+        /* 導覽按鈕（返回首頁用） */
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            background: #1e1e1e;
+            color: #00cd3c;
+            border: 1px solid #2a2a2a;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-bottom: 0px;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        .back-btn:hover {
+            background: #2a2a2a;
+        }
+
+        /* 第一層：首頁大分類卡片區 */
+        .main-menu {
+            display: grid;
+            grid-template-columns: 1px 1px; /* 雙欄排列 */
+            grid-auto-flow: row;
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        /* 自動填滿修正 */
+        @media (min-width: 481px) {
+            .main-menu { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 480px) {
+            .main-menu { grid-template-columns: 1fr; }
+        }
+
+        .menu-card {
+            background: #1e1e1e;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 1px solid #2a2a2a;
+            transition: transform 0.2s, border-color 0.2s;
+            text-align: center;
+
+            display: flex;
+                flex-direction: column; 
+                align-items: stretch;
+        }
+        .menu-card .img-wrapper {
+            height: 180px;           /* 固定圖片區域的高度為 180px */
+            display: flex;
+            justify-content: center; /* 讓長條圖水平完美居中 */
+            align-items: center;     /* 讓長條圖垂直居中 */
+            background: #1e1e1e;     /* 兩側多出來的空間會融入底色 */
+            overflow: hidden;
+        }
+
+        .menu-card:hover {
+            transform: translateY(-5px);
+            border-color: #00cd3c;
+        }
+
+        .menu-card img {
+            width: auto;
+            height: 180px;
+            object-fit: contain;   /* 改為 contain，圖片會完整縮放，不足的地方留背景色 */
+            background-color: #2a2a2a; /* 圖片載入前襯底 */
+        }
+
+        /* 💡 核心修正：強制把文字推到最下方，並拉開距離 */
+        .menu-card h3 {
+            margin: 0;
+            padding: 15px 10px;      /* 給文字舒適的上下間距 */
+            background: #1e1e1e;     /* 確保文字底色一致 */
+            font-size: 18px;
+            color: #ffffff;
+        }
+
+        /* 頁面切換邏輯隱藏樣式 */
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 第二層：列表排版 */
+        .app-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .app-card {
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #2a2a2a;
+            margin-bottom: 12px;
+        }
+
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2a2a2a;
+            padding-bottom: 1px;
+            margin-bottom: 2px;
+        }
+
+        .app-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .app-badge {
+            background: rgba(0, 205, 60, 0.1);
+            color: #00cd3c;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            border: 1px solid rgba(0, 205, 60, 0.3);
+        }
+
+        .info-row {
+            font-size: 14px;
+            color: #ccc;
+            margin: 6px 0;
+            display: flex;
+        }
+
+        .info-label {
+            color: #888;
+            min-width: 100px;
+            flex-shrink: 0;
+        }
+
+        .info-label-vote {
+            color: #888;
+            min-width: 50px;
+            flex-shrink: 0;
+            gap: 6px;
+        }
+
+        /* 教練按鈕與未來圖片放置區 */
+        .tutorial-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #333;
+        }
+
+        .toggle-tutorial-btn {
+            background: #2a2a2a;
+            color: #fff;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            width: 100%;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .tutorial-content {
+            display: none;
+            margin-top: 15px;
+            background: #151515;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .tutorial-content.show {
+            display: block;
+        }
+
+        /* 針對 Kakao-tut 內部的所有子元素強制自動斷行，防止撐開螢幕 */
+        .tutorial-content * {
+            max-width: 100%;
+            box-sizing: border-box;
+            word-break: break-all;  /* 遇到長網址或無空格文字時強制自動折行 */
+            white-space: normal;    /* 覆蓋任何可能導致不換行的 nowrap 設定 */
+        }
+
+        /* 未來你放教學圖片的樣式 */
+        .guide-image {
+            width: 100%;
+            max-width: 500px;
+            display: block;
+            margin: 10px auto;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+
+        .tag {
+            display: inline-block;
+            background: #333;
+            color: #aaa;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 5px;
+            margin-top: 5px;
+        }
+
+        /* 新增：音源 App 小圖標專用樣式 */
+        .app-icon {
+            width: 50px;         /* 限制寬度為 24 像素 */
+            height: 50px;        /* 限制高度為 24 像素 */
+            object-fit: contain; /* 確保圖標等比例縮放不變形 */
+            border-radius: 4px;  /* 精緻微圓角（可加可不加） */
+            flex-shrink: 0;      /* 防止圖標被文字擠壓變形 */
+        }
+
+/* 建立一個獨立的圖片包裹容器 */
+.image-wrapper {
+    position: relative;
+    display: block; /* 改為 block 確保抓到正確的圖片寬度 */
+    width: 100%;
+    max-width: 100%; /* 限制最大寬度 */
+    margin-bottom: 25px; /* 每張圖的下移間距 */
+}
+
+/* 改為獨立的一行，排在圖片正上方 */
+.step-badge {
+    display: block;       /* ❌ 刪除 position: absolute, top, left, background 等設定 */
+    margin-bottom: 8px;   /* 讓文字與下方的圖片保持一些微小空隙 */
+    color: #00cd3c;       /* 經典應援綠字 */
+    font-size: 16px;      /* 字體稍微放大一點，當作標題比較好看 */
+    font-weight: bold;
+}
+
+/* 教學圖片 */
+.image-wrapper .guide-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;   /* 依需求保留或刪除：幫圖片加點圓角更精緻 */
+}
+
+/* 新增綠色小標籤按鈕樣式 */
+.tag.tag-btn {
+    border-color: #00cd3c; /* 經典應援綠邊框 */
+    color: #00cd3c;        /* 綠色字體 */
+    cursor: pointer;       /* 游標變成小手手提示可點擊 */
+    transition: all 0.2s;
+}
+/* 滑鼠滑入時的微發光效果 */
+.tag.tag-btn:hover {
+    background-color: rgba(0, 205, 60, 0.1); /* 淡淡的綠色背景 */
+    box-shadow: 0 0 8px rgba(0, 205, 60, 0.3);
+}
+
+/* 獨立綠色小標籤按鈕樣式 */
+.alone.tag-btn {
+    float: right;          /* 強制浮動靠最右側 */
+    background: #1e1e1e;   /* 補上深色背景底色 */
+    border: 1px solid #00cd3c; /* 補上實體邊框 */
+    border-color: #00cd3c; /* 經典應援綠邊框 */
+    border-radius: 4px;   /* 圓角弧度，數值越大越圓（可依需求調整 10px 等） */
+    padding: 2px 4px; /* 2px 為上下留白，4px 為左右留白，可自由調整 */
+    color: #00cd3c;        /* 綠色字體 */
+    cursor: pointer;       /* 游標變成小手手提示可點擊 */
+    transition: all 0.2s;
+}
+/* 獨立滑鼠滑入時的微發光效果 */
+.alone.tag-btn:hover {
+    background-color: rgba(0, 205, 60, 0.1); /* 淡淡的綠色背景 */
+    box-shadow: 0 0 8px rgba(0, 205, 60, 0.3);
+}
+
+/* 懸浮回到最頂按鈕 - 縮小且半透明版 */
+.back-to-top {
+    position: fixed;
+    bottom: 20px;                  /* 稍微往右下角縮一點 */
+    right: 20px;
+    background-color: #00cd3c; 
+    color: #000000; 
+    width: 40px;                   /* 縮小寬度（從50px改為40px） */
+    height: 40px;                  /* 縮小高度（從50px改為40px） */
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 30px;               /* 箭頭稍微變小 */
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    z-index: 999; 
+    opacity: 0.6;                  /* 【關鍵】預設半透明度 60% */
+    transition: opacity 0.2s, transform 0.2s; /* 加入透明度轉場效果 */
+}
+
+/* 懸浮按鈕 - 縮小且半透明版 */
+.task-fab {
+    position: fixed;                          /* 定位方式：固定在螢幕畫面上（不隨頁面滾動） */
+    top: 230px;                               /* 位置：距離螢幕頂部 230px */
+    right: 20px;                               /* 位置：距離螢幕右側 20px */
+    background-color: #00cd3c;                /* 背景顏色：鮮綠色 */
+    color: #000000;                           /* 圖示/文字顏色：純黑色 */
+    width: 40px;                              /* 按鈕寬度：40px */
+    height: 40px;                             /* 按鈕高度：40px */
+    border-radius: 50%;                       /* 邊框圓角：50%（將方形修飾成正圓形） */
+    display: flex;                            /* 排列方式：啟用彈性盒模型 */
+    justify-content: center;                  /* 主軸對齊：內容水平居中 */
+    align-items: center;                      /* 交叉軸對齊：內容垂直居中 */
+    font-size: 22px;                          /* 圖示/文字大小：22px */
+    cursor: pointer;                          /* 滑鼠指標：移上去時顯示「手型」圖示 */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);/* 陰影效果：x軸0, y軸向下4px, 模糊10px, 黑色30%透明 */
+    z-index: 999;                             /* 圖層順序：置於極高圖層（避免被其他元素遮擋） */
+    opacity: 0.6;                             /* 透明度：預設為 60% 半透明 */
+    transition: opacity 0.2s, transform 0.2s; /* 動畫過渡：透明度和縮放效果在 0.2 秒內平滑變化 */
+}
+
+.calendar-fab{
+    position: fixed;                          /* 定位方式：固定在螢幕畫面上（不隨頁面滾動） */
+    top: 280px;                               /* 位置：距離螢幕頂部 280px */
+    right: 20px;                               /* 位置：距離螢幕右側 20px */
+    background-color: #00cd3c;                /* 背景顏色：鮮綠色 */
+    color: #000000;                           /* 圖示/文字顏色：純黑色 */
+    width: 40px;                              /* 按鈕寬度：40px */
+    height: 40px;                             /* 按鈕高度：40px */
+    border-radius: 50%;                       /* 邊框圓角：50%（將方形修飾成正圓形） */
+    display: flex;                            /* 排列方式：啟用彈性盒模型 */
+    justify-content: center;                  /* 主軸對齊：內容水平居中 */
+    align-items: center;                      /* 交叉軸對齊：內容垂直居中 */
+    font-size: 22px;                          /* 圖示/文字大小：22px */
+    cursor: pointer;                          /* 滑鼠指標：移上去時顯示「手型」圖示 */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);/* 陰影效果：x軸0, y軸向下4px, 模糊10px, 黑色30%透明 */
+    z-index: 999;                             /* 圖層順序：置於極高圖層（避免被其他元素遮擋） */
+    opacity: 0.6;                             /* 透明度：預設為 60% 半透明 */
+    transition: opacity 0.2s, transform 0.2s; /* 動畫過渡：透明度和縮放效果在 0.2 秒內平滑變化 */
+}
+
+
+
+/* 滑鼠移上去時的效果 */
+.back-to-top:hover {
+    opacity: 1;                    /* 【關鍵】滑鼠移上去時恢復 100% 全清晰 */
+    transform: scale(1.05); 
+}
+
+.orientation-warning {
+    align-items: center;
+    justify-content: center;
+    background: rgba(30, 30, 30, 0.95); /* 深灰色背景 */
+    border: 2px solid #00cd3c; /* 經典亮綠色邊框 */
+    border-radius: 12px;
+    padding: 0px;/* 將原本的 20px 上下內距縮減為 0px */
+    margin: 10px auto 20px auto;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+    animation: pulse 2s infinite;
+    width: 100%;
+    max-width: 600px;
+    box-sizing: border-box;
+}
+
+.warning-content {
+    display: flex;
+    align-items: center;         /* 垂直居中 */
+    justify-content: flex-start; /* 改為靠左對齊（預設值） */
+    gap: 12px;                   /* 設定圖片與文字之間的距離 */
+}
+
+.warning-icon {
+    font-size: 22px;
+    animation: spin 4s linear infinite;
+    display: inline-block;
+}
+
+.warning-content p {
+    margin: 0;
+    flex: 1;        /* 讓文字靠左側 */
+    color: #ffffff;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.warning-content b {
+    color: #00cd3c;
+}
+
+#rotateWarning {
+    display: none; /* 預設一律隱藏 */
+}
+/* 只有加上 show class 時才顯示 */
+#rotateWarning.show {
+    display: flex;
+}
+
+
+/* 動態特效 */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-360deg); }
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 4px 12px rgba(0, 205, 60, 0.2); border-color: rgba(0, 205, 60, 0.6); }
+    50% { box-shadow: 0 4px 20px rgba(0, 205, 60, 0.6); border-color: rgba(0, 205, 60, 1); }
+    100% { box-shadow: 0 4px 12px rgba(0, 205, 60, 0.2); border-color: rgba(0, 205, 60, 0.6); }
+}
+
+/* 新的發光動畫（可以自行修改裡面的 RGB 顏色值） */
+@keyframes pulse-pay {
+    0% {
+        box-shadow: 0 0 0 0 rgba(197, 255, 2, 0.75); /* 起始發光色 */
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(197, 255, 2, 0); /* 擴散淡出 */
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(197, 255, 2, 0);
+    }
+}
+
+/* 圖片自適應縮放樣式 */
+.guide-img {
+    width: 20%;          /* 讓圖片寬度最大撐滿容器 */
+    max-width: 100px;        /* 限制最大寬度，避免在平板或大螢幕上突然變得太大 */
+    min-width: 70px;        /* 限制最小寬度，避免在極小的小手機上變太小看不清 */
+    height: auto;         /* 高度自動等比例縮放，防止圖片變形 */
+    display: block;       /* 消除圖片下方微小間隙 */
+    margin: 15px auto 15px 15px;       /* 圖片水平置中 */
+    border-radius: 8px;   /* 可選：給圖片加點圓角，看起來更精緻 */
+}
+
+
+/* 定義一個「未開放」的類別 */
+.not-open {
+    position: relative; /* 讓偽元素可以絕對定位在卡片上方 */
+    cursor: not-allowed; /* 讓滑鼠游標變成「禁止」符號 */
+}
+
+/* 建立灰色半透明遮罩 */
+.not-open::after {
+    content: "暫未開放"; /* 顯示的文字內容 */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* 黑色背景，0.7 是透明度（灰色半透明效果） */
+    color: #ffffff; /* 文字顏色為白色 */
+    display: flex;
+    justify-content: center; /* 文字水平居中 */
+    align-items: center; /* 文字垂直居中 */
+    font-size: 20px; /* 文字大小 */
+    font-weight: bold; /* 文字加粗 */
+    border-radius: 12px; /* 保持跟卡片一樣的圓角，不跑版 */
+    z-index: 10; /* 確保遮罩在圖片和文字上方 */
+}
+
+/* 多段式比例進度條樣式 */
+.ratio-progress-container {
+    margin: 0px 0 0px 0;/* 依序為：上 5px、右 0、下 20px、左 0 */
+    background: #1e1e1e;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 15px;
+}
+.ratio-progress-bar {
+    display: flex;
+    height: 60px;/* 增加厚度 */
+    border-radius: 6px;/* 這裡控制進度條的圓角 */
+    overflow: hidden;
+    margin-top: 0px;   /* 控制進度條與上方返回按鈕的間距 */
+    margin-bottom: 0px;/* 控制進度條與下方詳細計分按鈕的間距 */
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+}
+.ratio-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center; /* 強制文字水平置中 */
+
+    font-size: 11px;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    transition: width 0.3s ease;
+/* 💡 您可在此處修改字體樣式 💡 */
+    font-size: 11px; /* 改為 14px 讓字變大（原本為 11px） */
+    font-weight: 600; /* 改粗細（常規粗體為 bold 或 700，一般字體為 normal 或 400） */
+}
+/* 各項目專屬顏色 */
+.seg-music   { background-color: #00cd3c; } /* 音源：應援綠 */
+.seg-sales   { background-color: #1d72b8; } /* 銷量：藍 */
+.seg-sns     { background-color: #ff007f; } /* SNS：粉紅 */
+.seg-broadcast{ background-color: #ff9900; } /* 放送：橘 */
+.seg-pre     { background-color: #8a2be2; } /* 事前：紫 */
+.seg-live    { background-color: #e53935; } /* 實時：紅 */
+
+.ratio-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    font-size: 13px;
+}
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+/* 讓詳細計分按鈕區塊靠右對齊的容器 */
+.detail-btn-wrapper {
+    display: flex;
+    justify-content: flex-end; /* 關鍵：強制子元素靠右 */
+    margin-top: 0px;           /* 與上方進度條的間距，可自行調整 */
+    margin-bottom: 20px;       /* 控制按鈕下方的留白 */
+    width: 100%;
+}
+
+/* 詳細計分按鈕樣式 */
+.detail-score-btn {
+    background-color: transparent;
+    color: #00cd3c;            /* 經典應援綠，可改為您喜歡的顏色 */
+    border: 1px solid #2a2a2a;
+    border-radius: 20px;       /* 圓角造型 */
+    padding: 6px 14px;         /* 上下左右內距 */
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease; /* 讓滑鼠懸停動畫更平滑 */
+}
+
+/* 滑鼠滑入按鈕時的效果 */
+.detail-score-btn:hover {
+    background-color: #00cd3c;
+    color: #121212;            /* 文字變成深色背景色 */
+    box-shadow: 0 0 10px rgba(0, 205, 60, 0.5); /* 微微的亮綠色光暈 */
+}
+
+/* 詳細計分表格專用樣式 */
+.score-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #eee;
+}
+
+.score-table th, .score-table td {
+    padding: 10px 12px;
+    text-align: center; /* 文字居中對齊 */
+    border-bottom: 1px solid #2a2a2a; /* 深灰色分隔線 */
+}
+
+.score-table th {
+    background-color: #1e1e1e;
+    color: #00cd3c; /* 經典應援綠標題 */
+    font-weight: bold;
+}
+
+/* 滑鼠滑過表格列時的微亮效果 */
+.score-table tbody tr:hover {
+    background-color: rgba(0, 205, 60, 0.05);
+}
+
+/* 彈窗背景遮罩 */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 彈窗內容容器 */
+.modal-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 95%;
+    max-height: 95%;
+}
+
+/* 彈窗圖片 */
+.modal-img {
+    max-width: 100%;
+    max-height: 70vh;
+    border-radius: 8px;
+    border: 1px solid #00cd3c;
+}
+
+/* 關閉按鈕 */
+.modal-close-btn {
+    margin-top: 2px;
+    background: #1e1e1e;
+    color: #00cd3c;
+    border: 1px solid #00cd3c;
+    padding: 8px 24px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+
+/* sheet彈窗主體容器：極致縮減邊框、加大顯示面積 */
+.modal-container.sheet-container {
+    width: 99vw;             /* 從 90vw 放寬到 95vw */
+    max-width: 620px;
+    height: 90vh;            /* 從 80vh 拉高到 90vh，充分利用螢幕 */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0px;            /* 從 12px 縮減到 3px，減少邊框浪費 */
+    box-sizing: border-box;
+    overflow: hidden;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 3px solid #00cd3c;  /* 新增：綠色外框線 (粗細可自行改成 1px 或 3px) */
+}
+
+/* 試算表區域 */
+.iframe-wrapper {
+    width: 100%;
+    height: 95%;              /* 設定固定高度供滾動 */
+    flex: 1;
+    position: relative;
+    overflow: hidden;         /* 關鍵：回復顯示滾動條 (auto 會在需要時自動顯示) */
+    border-radius: 8px;
+    margin-bottom: 0px;      /* 從 10px 縮減到 4px，貼緊關閉按鈕 */
+}
+
+/* iframe 畫面對齊與裁切修正 */
+.modal-iframe {
+    position: absolute;
+    top: -20px;              /* 向上平移：完全裁掉頂部標題 */
+    left: 0;
+    width: 610px;            /* 加寬基準寬度，確保右側「節目」欄位 100% 完整露出來 */
+    height: 1000px;          /* 加高基準高度，配合下方裁切頁腳 */
+    border: none;
+    transform: scale(var(--scale, 0.6));
+    transform-origin: top left;
+}
+
+/* 關閉按鈕：緊貼底部 */
+#sheet-modal .modal-close-btn {
+    flex-shrink: 0;
+    padding: 6px 20px;       /* 微調按鈕上下內邊距 */
+    margin-bottom: 2px;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.calendar-container {
+    background: #1e1e1e;
+    color: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    border: 1px solid #00cd3c;
+    position: relative;
+}
+
+.close-modal-btn {
+    position: absolute;
+    top: 10px; right: 15px;
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+
+        /* calendar開啟彈窗按鈕 */
+        .opencalendar-btn {
+            float: right;          /* 強制浮動靠最右側 */
+            background: #1e1e1e;   /* 補上深色背景底色 */
+            border: 1px solid #00cd3c; /* 補上實體邊框 */
+            border-color: #00cd3c; /* 經典應援綠邊框 */
+            border-radius: 4px;   /* 圓角弧度，數值越大越圓（可依需求調整 10px 等） */
+            padding: 2px 4px; /* 2px 為上下留白，4px 為左右留白，可自由調整 */
+            font-size: 16px;       /* 💡 新增：設定字體大小（可依需求改為 16px 等） */
+            color: #00cd3c;        /* 綠色字體 */
+            cursor: pointer;       /* 游標變成小手手提示可點擊 */
+            transition: all 0.2s;
+        }
+        /* 獨立滑鼠滑入時的微發光效果 */
+        .opencalendar-btn:hover {
+            background-color: rgba(0, 205, 60, 0.1); /* 淡淡的綠色背景 */
+            box-shadow: 0 0 8px rgba(0, 205, 60, 0.3);
+        }
+
+
+        /* calendar彈窗背景遮罩 */
+        .modalcalendar-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        /* 彈窗主體 */
+        .modal-content {
+            background: #d8b4fe; /* 修改：背景顏色 */
+            padding: 20px;
+            border-radius: 10px;
+            min-height: 450px; /* 固定最小高度，避免切換月份時彈窗忽大忽小 */
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        /* 關閉按鈕 */
+        .close-btn {
+            position: absolute;
+            top: 10px; right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: #666666; /* 新增：關閉按鈕顏色 */
+        }
+
+        /* 日曆頂部月分標題 */
+        .calendar-header {
+            text-align: center;
+            justify-content: space-between; /* 左右按鈕分開，文字居中 */
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #1e293b; /* 新增：標題顏色 */
+            gap: 10px 5px;
+        }
+
+        /* 切換月份按鈕樣式 */
+        .nav-btn {
+          background-color: #f1f5f9;
+          border: 1px solid #cbd5e1;
+          border-radius: 4px;
+          padding: 4px 10px;
+          font-size: 14px;
+          cursor: pointer;
+          transition: background-color 0.2s;
+        }
+
+        .nav-btn:hover {
+          background-color: #e2e8f0;
+        }
+        
+        /* 月曆刷新按鈕樣式 */
+        .nav-refresh-btn {
+          background-color: #f1f5f9;  /* 背景顏色：極淺灰藍色 (色彩調性溫和) */
+          border: 1px solid #cbd5e1;  /* 邊框：1px 實線淺灰藍邊框 */
+          border-radius: 6px;         /* 圓角：4px (微圓角) */
+          padding: 4px 8px;           /* 內邊距：上下 4px、左右 10px */
+          font-size: 11px;            /* 字體大小：14px */
+          margin-left: auto;          /* 左外邊距：自動(在Flexbox容器中推至最右) */
+          cursor: pointer;            /* 滑鼠指標：游移時顯示為手型 (代表可點擊) */
+          transition: background-color 0.2s; /* 滑鼠過渡效果：背景色變換0.2秒  */
+      }
+
+        /* 日曆網格布局 */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            text-align: center;
+        }
+
+        .weekday-header {
+            font-weight: bold;
+            padding: 5px 0;
+            background-color: #f3e8ff; /* 修改：星期標頭改成淺紫色 */
+            color: #6b21a8;            /* 修改：星期文字深紫 */
+            font-size: 12px;
+            margin-bottom: 8px; /* 👈 新增這行：調整與下方格子的距離 */
+        }
+
+        .day-cell {
+            min-height: 15px;
+            border: 1px solid #9333ea; /* 修改：邊框顏色 */
+            border-radius: 4px;
+            padding: 0px 0px;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: self-start;
+            box-sizing: border-box;
+            overflow: hidden;       /* 避免內容過多時溢出格子 */
+        }
+
+        /* 今天日期的紅框標示 */
+        .today {
+            border: 1px solid #ff3b30 !important;
+            background-color: #ffcae7;           /* 修改：今天的底色淺粉 */
+        }
+
+        .day-number {
+            font-weight: bold;
+            margin-bottom: 0px;
+            color: #334155; /* 新增：日期數字顏色 */
+        }
+
+        /* 行事曆事件文字 */
+        .event-text {
+            font-size: 10px;
+            color: #475569 ; /* 修改：事件內文深灰 */
+            line-height: 1.2;
+        }
+
+
+        /* 行事曆事件連結 */
+        .event-link {
+            font-size: 10px;
+            color: #9333ea; /* 修改：連結改成紫色 */
+            text-decoration: underline;
+            word-break: break-all;
+            margin-top: 1px;
+            display: inline !important; /* ✅ 改為行內元素，跟標籤同一行 */
+        }
+
+        /* 行事曆事件連結轉文字 */
+        .event-link-text {
+            font-size: 10px; /* 字體大小：11px (調整為與 .event-link 一致) */
+            color: #7e22ce;  /* 文字顏色：紫色 (調整為與 .event-link 一致) */
+            display: inline !important; /* ✅ 改為行內元素，緊跟在標籤後面 */
+            margin-top: 1px; /* 上外邊距：2px (與上方元素保持微小間距) */
+        }
+        
+/* 單個行程區塊 */
+.event-item {
+  display: flex;
+  flex-wrap: wrap;                /* ✅ 改動：允許空間不夠時自動換行 */
+  align-items: center;            /* 垂直居中 */
+  justify-content: flex-start;    /* ✅ 改動：改為靠左對齊，換行時比較好看 */
+  width: 100%;
+  margin-top: 2px;
+  padding-top: 0px;
+  border-top: 1px dashed #c084fc; /* 可選：加虛線分隔兩組行程 */
+}
+
+/* 第一組行程頂部不需要分隔線 */
+.event-item:first-of-type {
+  border-top: none;
+  margin-top: 2px;
+}
+
+/* 圓點標籤基礎樣式 */
+.event-tag {
+    display: inline-flex;       /* 排版模式：行內彈性盒 (內部文字水平垂直置中) */
+    justify-content: center;    /* 水平置中：讓內部的文字在圓圈內水平居中 */
+    align-items: center;        /* 垂直置中：讓內部的文字在圓圈內垂直居中 */
+    width: 18px;                /* 寬度：16px */
+    height: 18px;               /* 高度：16px (配合 50% 圓角形成正圓形) */
+    border-radius: 50%;         /* 邊框圓角：50% (將正方形轉為圓形標籤) */
+    font-size: 10px;            /* 字體大小：10px */
+    font-weight: 350;           /* 一般字體 (不加粗) */
+    color: #ffffff;             /* 文字顏色：純白色 */
+    margin-right: 2px;          /* 右外邊距：2px (與右側內容保持微小間距) */
+    flex-shrink: 0;             /* Flex 壓縮率：0 (空間不足時防止圓形標籤被壓扁) */
+}
+
+/* 事前標籤（淺紫色圓圈） */
+.event-tag.tag-before {
+    background-color: #cf7ee9;  /* 背景顏色：淺紫色 (提示色) */
+}
+
+/* 實時標籤（粉紅色圓圈） */
+.event-tag.tag-realtime {
+    background-color: #ffaaaa;  /* 背景顏色：粉紅色 (高優先級/實時狀態色) */
+}
+
+/* 左上角標籤說明區塊 */
+.calendar-legend {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    padding-left: 4px;
+    font-size: 12px;
+    color: #555555;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* 重新整理按鈕樣式 */
+.refresh-btn {
+    margin-left: 8px;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+        
+/* ⭕ 新增：相冊彈窗全螢幕遮罩 */
+.gallery-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    justify-content: center;
+    align-items: center;
+}
+
+/* 彈窗內容主體 */
+.gallery-content {
+    position: relative;
+    width: 90vw;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 關閉按鈕 */
+.gallery-close {
+    position: absolute;
+    top: -35px;
+    right: 0;
+    color: #fff;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* ⭕ 圖片滑動軌道 */
+.gallery-slider {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    max-height: 80vh;                  /* 稍微放寬高度以容納標題與文字 */
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;    /* 強制滑動停止時對齊 */
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;/* iOS 順暢滑動 */
+    scrollbar-width: none;            /* 隱藏 Firefox 滾動條 */
+    /* 新增：電腦版拖曳設定 */
+    cursor: grab;                     /* 平時顯示抓取手勢 */
+    user-select: none;                /* 避免拖曳時選取文字 */
+    -webkit-user-drag: none;
+}
+
+/* ⭕⭕按下拖曳時的狀態 */
+.gallery-slider.dragging {
+    cursor: grabbing;                 /* 按下時變抓緊手勢 */
+    scroll-snap-type: none;           /* 拖曳期間暫時關閉對齊，滑動更順暢 */
+    scroll-behavior: auto !important; /* 關閉平滑滾動以提升手感 */
+}
+
+/* 隱藏 Chrome/Safari/Edge 滾動條 */
+.gallery-slider::-webkit-scrollbar {
+    display: none;
+}
+
+/* ⭕ 滑動軌道內的卡片容器（包含 標題 + 圖片 + 說明文字） */
+.gallery-item {
+    flex: 0 0 100%;                    /* 每張卡片滿寬 */
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    scroll-snap-align: center;         /* 滑動停止時置中對齊 */
+    box-sizing: border-box;
+    padding: 0 5px;
+}
+
+/* ⭕ 上方標題樣式 */
+.gallery-item-title {
+    color: #00cd3c;                    /* 經典應援綠 */
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0 0 10px 0;
+    text-align: center;
+}
+
+/* ⭕ 中間圖片樣式 */
+.gallery-item img {
+    width: 100%;
+    max-height: 65vh;                   /* 留出空間給上方標題與下方文字 */
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+/* ⭕ 下方說明文字樣式 */
+.gallery-item-desc {
+    color: #ff0000;                       /* 亮紅色文字 */
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 10px 0 0 0;
+    text-align: center;
+}
+
+/* ⭕⭕左側垂直文字 */
+.vertical-text {
+  position: absolute;
+  left: 10px; /* 貼在內部左邊；若想掛在彈窗外面可改為 left: -30px */
+  top: 50%;
+  transform: translateY(-50%); /* 垂直居中 */
+  /* 設定直書 */
+  writing-mode: vertical-rl;
+  /* 樣式設定 */
+  font-size: 14px;
+  color: #888;
+  letter-spacing: 2px; /* 字距調鬆一點比較好看 */
+  white-space: nowrap;
+}
+
+/* 下方圓點（...）容器 */
+.gallery-dots {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+/* 圓點基本樣式 */
+.gallery-dot {
+    width: 10px;
+    height: 10px;
+    background-color: #555;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+/* 啟用的圓點樣式 */
+.gallery-dot.active {
+    background-color: #00cd3c; /* 經典應援綠 */
+    transform: scale(1.2);
+}
+
+/* ⭕ 獨立的呼吸燈風格按鈕 */
+.pay-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(30, 30, 30, 0.95);      /* 深灰半透明背景 */
+    border: 2px solid #c5ff02;                 /* 2px 亮綠色邊框 */
+    border-radius: 8px;                             /* 12px 圓角 */
+    padding: 2px 6px;                                /* 按鈕內邊距 */
+    margin: 8px 0;                                     /* 外邊距 */
+    color: #c5ff02;                               /* 亮綠色字體 */
+    font-size: 12px;
+    font-weight: 400;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6); /* 黑色陰影 */
+    animation: pulse-pay 1.5s infinite;             /* 1.5秒呼吸燈效果 */
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+/* 滑鼠移入 / 按下時的微反饋 */
+.pay-btn:hover {
+    background: #c5ff02;
+    color: #121212;
+    transform: scale(1.02);
+}
+
+.pay-btn:active {
+    transform: scale(0.98);
+}
+
+/* 新增：公告彈窗內容盒 */
+.notice-modal-content {
+    background: #1e1e1e;
+    color: #ffffff;
+    padding: 24px;
+    border-radius: 12px;
+    border: 2px solid #00cd3c;  /* 經典綠色邊框 */
+    max-width: 90%;
+    width: 420px;
+    text-align: center;
+    box-sizing: border-box;
+    animation: pulse 1s infinite;[cite: 1, 6]
+}
+
+/* 呼吸燈動畫 Keyframes（讓綠色外框與發光陰影強弱漸變） */
+@keyframes pulse {[cite: 1, 6]
+    0% { 
+        box-shadow: 0 0 6px rgba(0, 205, 60, 0.3), 0 4px 15px rgba(0, 0, 0, 0.8);[cite: 1, 6]
+        border-color: rgba(0, 205, 60, 0.5) !important;[cite: 1, 6]
+    } 
+    50% { 
+        box-shadow: 0 0 18px rgba(0, 205, 60, 0.8), 0 4px 20px rgba(0, 0, 0, 0.9);[cite: 1, 6]
+        border-color: rgba(0, 205, 60, 1) !important;[cite: 1, 6]
+    } 
+    100% { 
+        box-shadow: 0 0 6px rgba(0, 205, 60, 0.3), 0 4px 15px rgba(0, 0, 0, 0.8);[cite: 1, 6]
+        border-color: rgba(0, 205, 60, 0.5) !important;[cite: 1, 6]
+    } 
+}
+
+/* 公告標題 */
+.notice-modal-content h3 {
+    color: #00cd3c;
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-size: 20px;
+}
+
+/* 公告內文區域 */
+.notice-body {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #ffffff;
+    text-align: left;
+    margin-bottom: 20px;
+    word-break: break-all;
+}
+
+.notice-body b {
+    color: #00cd3c;
+}
+
+/* 單獨控制網頁更新版本說明文字：小一點、淺灰色 */
+.notice-body .update-version {
+    color: #888888;       /* 淺灰色 */
+    font-size: 12px;      /* 較小字體 (原本約為 14px) */
+    margin-top: 6px;      /* 與上方公告保持微小間隔 */
+}
+
+/* 我知道了 / 關閉按鈕 */
+.notice-close-btn {
+    background: #1e1e1e;
+    color: #00cd3c;
+    border: 1px solid #00cd3c;
+    padding: 8px 28px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.notice-close-btn:hover {
+    background-color: rgba(0, 205, 60, 0.1);
+    box-shadow: 0 0 8px rgba(0, 205, 60, 0.3);
+}
+
+/* 新增：底部排版容器，讓勾選框與按鈕並排且垂直對齊 */
+.notice-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 新增：勾選框與文字樣式 */
+.dont-show-label {
+    font-size: 13px;
+    color: #aaa;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+}
+
+.dont-show-label input[type="checkbox"] {
+    accent-color: #00cd3c; /* 勾選框改成主題綠色 */
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
+}
+
+/* CSS結尾 */
+
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1 onclick="switchPage('home-page')" style="cursor: pointer;">i-dle* 打歌投票刷榜單指南</h1>
+        <p>即時更新最新打歌節目投票時間與音源刷榜教學</p>
+    </header>
+
+
+<div id="rotateWarning" class="orientation-warning">
+    <div class="warning-content">
+        <img src="https://i-dle-melon.github.io/vote/icon/NEVERLAND.jpg" alt="" class="guide-img">
+<p><b>公告：</b>提早存票依過期：最早半年～最晚1個月前存票。<br>事前存票優先順序：依照每日任務。<br>
+實時存票：Higher只需存250紅鑽。</p>
+    </div>
+</div>
+
+
+    <div id="home-page" class="page active">
+
+        <div class="main-menu">
+            <div class="menu-card" onclick="switchPage('vote-page')">
+                <div class="img-wrapper">
+                <img src="https://i-dle-melon.github.io/Gimme-Dat-Love/Gimme Dat Love.png"class="song-cover" alt="投票教學">
+               </div> <h3>🗳️ 音放存票投票教學</h3>
+            </div>
+            <div class="menu-card" onclick="switchPage('Kakao-page')">
+                <div class="img-wrapper">
+                <img src="https://i-dle-melon.github.io/vote/Kakao/Kakao.png"class="song-cover" alt="Kakao註冊教學">
+               </div> <h3>👤 Kakao 網頁註冊點讚教學</h3>
+            </div>
+            <div class="menu-card" onclick="switchPage('Tiktok-page')">
+                <div class="img-wrapper">
+                <img src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok.png"class="song-cover" alt="切瓜教學">
+               </div> <h3> ♪ Tiktok  引用刷音源教學</h3>
+            </div>
+            <div class="menu-card not-open" onclick="switchPage('Melon-page')">
+                <div class="img-wrapper">
+                <img src="https://i-dle-melon.github.io/vote/melon/melon.png"class="song-cover" alt="切瓜教學">
+               </div> <h3>🎵 Melon 切瓜刷音源教學</h3>
+            </div>
+            <div class="menu-card not-open" onclick="switchPage('Youtube-page')">
+                <div class="img-wrapper">
+                <img src="https://i-dle-melon.github.io/vote/Youtube/Youtube.png"class="song-cover" alt="切瓜教學">
+               </div> <h3>🎵 Youtube  無痕刷音源教學</h3>
+            </div>
+            <div class="menu-card not-open" onclick="switchPage('Shazam-page')">
+                <div class="img-wrapper">
+                <img src="https://i-dle-melon.github.io/vote/Shazam/Shazam.png"class="song-cover" alt="切瓜教學">
+               </div> <h3>🎵 Shazam  搜尋刷音源教學</h3>
+            </div>
+        </div>
+    </div>
+
+
+<div id="vote-page" class="page">
+
+    <button class="back-btn" onclick="switchPage('home-page')">⏎ 返回首頁</button>
+
+<div class="header.weight-header">
+    <header>
+        <h2>節目選單</h2>
+    </header>
+    </div>
+    
+    <div class="main-menu">
+        <div class="menu-card" onclick="switchPage('mubank-page')">
+                <div class="img-wrapper">
+            <img src="https://i-dle-melon.github.io/vote/Music_Bank/Music Bank.png" alt="Music Bank" class="song-cover">
+           </div> <h3>① Music Bank 音樂銀行(KBS)</h3>
+        </div>
+
+        <div class="menu-card" onclick="switchPage('mcd-page')">
+                <div class="img-wrapper">
+            <img src="https://i-dle-melon.github.io/vote/M_Countdown/M Countdown.png" alt="M Countdown" class="song-cover">
+           </div> <h3>② M Countdown MCD(Mnet)</h3>
+        </div>
+
+        <div class="menu-card" onclick="switchPage('musiccore-page')">
+                <div class="img-wrapper">
+            <img src="https://i-dle-melon.github.io/vote/Show_Music/Show Music.png" alt="Show! Music Core 音樂中心 (MBC)" class="song-cover">
+          </div> <h3>③ Show! Music Core 音樂中心 (MBC)</h3>
+        </div>
+
+        <div class="menu-card" onclick="switchPage('inkigayo-page')">
+                <div class="img-wrapper">
+            <img src="https://i-dle-melon.github.io/vote/Inkigayo/Inkigayo.png" alt="人氣歌謠(SBS)" class="song-cover">
+           </div> <h3>④ Inkigayo 人氣歌謠(SBS)</h3>
+        </div>
+
+        <div class="menu-card" onclick="switchPage('showchamp-page')">
+                <div class="img-wrapper">
+            <img src="https://i-dle-melon.github.io/vote/Show_Champion/Show Champion.png" alt="SHOW champion" class="song-cover">
+           </div> <h3>⑤ SHOW champion 冠軍秀(MBC Music)</h3>
+        </div>
+    </div>
+</div>
+
+
+            <div id="mubank-page" class="page">
+    <button class="back-btn" onclick="switchPage('vote-page')">⏎ 返回節目選單</button>
+
+<span class="header-title">Music Bank (音樂銀行)</span>
+
+<div class="header.weight-header">
+    <header>
+        <h2>總分統計權重</h2>
+    </header>
+    </div>
+
+<div class="ratio-progress-container">
+    <div class="ratio-progress-bar">
+        <div class="ratio-segment seg-music" style="width: 60%;">音源60%<br>Melon,Genie,Flo,Vibe,Bugs</div>
+        <div class="ratio-segment seg-sales" style="width: 5%;">銷<br>量<br>5%<br>CIRCLE</div>
+        <div class="ratio-segment seg-sns" style="width: 5%;">SNS<br>5%<br>YT</div>
+        <div class="ratio-segment seg-broadcast" style="width: 20%;">放送20%<br>KBS電視台/廣播</div>
+        <div class="ratio-segment seg-pre" style="width: 10%;">事前<br>投票10%</div>
+
+    </div>
+    <div class="ratio-legend">
+        <div class="legend-item"><span class="legend-dot seg-music"></span>音源 60%</div>
+        <div class="legend-item"><span class="legend-dot seg-sales"></span>銷量 5%</div>
+        <div class="legend-item"><span class="legend-dot seg-sns"></span>SNS 5%</div>
+        <div class="legend-item"><span class="legend-dot seg-broadcast"></span>放送 20%</div>
+        <div class="legend-item"><span class="legend-dot seg-pre"></span>事前投票 10%</div>
+
+    </div>
+</div>
+<div class="detail-btn-wrapper">
+    <button class="detail-score-btn" onclick="switchPage('mubank-detail-page')">詳細計分 ➔</button>
+</div>
+ 
+<div class="header.weight-header">
+    <header>
+        <h2>投票App教學</h2>
+    </header>
+    </div>
+   
+            <div class="app-card">
+                <div class="app-header">
+                    <div class="app-title">① 音樂銀行(事前投票)</div>
+<div class="app-row" style="display: flex; justify-content: space-between; align-items: center;">
+<img src="https://i-dle-melon.github.io/vote/Music_Bank/coogoong.png" alt="" class="app-icon" style="margin-left: auto; margin-right: 6px;cursor: pointer;"onclick="openApp('fancast')">
+                    <button class="app-badge" onclick="openApp('fancast')"style="cursor: pointer;">coogoong<br>👈開啟App</button>
+    </div>
+                </div>
+                <div class="info-row"><div class="info-label">🕒 播出時間</div><div>每週五 16:00 (GMT+8)</div></div>
+                <div class="info-row"><div class="info-label">🗳️ 事前投票</div><div>每週一 14:00 ～ 每週三 10:00 (GMT+8)</div></div>
+                
+                <div class="tutorial-section">
+                    <button class="toggle-tutorial-btn" onclick="toggleTutorial('mubank-tut')">查看詳細圖文教學 <span>▼</span></button>
+                    <div id="mubank-tut" class="tutorial-content">
+
+                        <p style="color:#aaa; font-size:14px;">以下標籤直接跳轉圖片⇩</p>
+                        <span class="tag tag-btn" onclick="document.getElementById('Fancast-tickets').scrollIntoView({ behavior: 'smooth' })">#存票教學👈</span>
+                        <span class="tag tag-btn" onclick="document.getElementById('Fancast-vote').scrollIntoView({ behavior: 'smooth' })">#投票教學👈</span>
+ 
+<button class="pay-btn" data-gallery="coogoong-pay">#小卡pay💳</button>
+ 
+                        <span class="tag tag-btn" onclick="document.getElementById('Fancast-vote1-expired').scrollIntoView({ behavior: 'smooth' })">#投票&過期說明👇</span>
+
+                                <div class="image-wrapper" id="Fancast-vote1-expired">
+        <div class="app-card">
+            <div class="app-header">
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">規則</div>
+                <div>①每日簽到(隨簽到日增加每日獲得數量)+刷廣告。<br><span style="color: #ff3b30;">禁止點Trade兌換票券 : 錢錢會不見。</span><span class="tag tag-btn" onclick="document.getElementById('trade-modal').style.display='flex'">圖例👈</span><br>②需使用愛心投票，一票50藍心or 50黃心，投票每次只能選擇一種愛心最多500票，CD10分鐘<span style="color: #ff3b30;">(藍心30天過期)。</span></div>
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">小訣竅</div>
+                <div>※廣告CD10分鐘，可先看完3個穿插其他App。<br><span style="color: #ff3b30;">投票每次只能選擇一種愛心最多500票，CD10分鐘。</span></div>
+
+        </div>
+                    </div> </div>  
+                        <p style="color:#aaa; font-size:14px;">以下為完整步驟圖解：</p>
+                                <div class="image-wrapper" id="Fancast-tickets">
+                            <span class="step-badge">存票步驟 1</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Music_Bank/Fancast/存票1.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">存票步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Music_Bank/Fancast/存票2.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">存票步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Music_Bank/Fancast/存票3.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">存票步驟 4</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Music_Bank/Fancast/存票4.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper" id="Fancast-vote">
+                            <span class="step-badge">投票步驟 1</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Music_Bank/Fancast/投票1.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Music_Bank/Fancast/投票2.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Music_Bank/Fancast/投票3.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 4</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Music_Bank/Fancast/投票4.jpg" alt="沒有圖片請重整頁面稍等載入">
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+<div id="mubank-detail-page" class="page">
+    <button class="back-btn" onclick="switchPage('mubank-page')">⏎ 返回教學介面</button>
+    
+<div class="container">
+    <header>
+        <h2>Music Bank音樂銀行(KBS)詳細計分</h2>
+    </header>
+        </div>
+
+    <p style="color: #aaa; font-size: 14px; margin-bottom: 20px;">以下為各個計分項目的詳細計算方式與管道說明：</p>
+
+<div class="app-card">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+        <h3 style="margin: 0;">計分模式</h3>
+        <span class="tag tag-btn" onclick="document.getElementById('score-modal').style.display='flex'">SNS音源一覽圖☝️</span>
+    </div>
+</div>
+
+    <table class="score-table">
+        <thead>
+            <tr>
+                <th>各項</th>
+                <th>總分<br>20萬分</th>
+                <th>備註</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>數位音源</td>
+                <td>各團均分120000分</td>
+                <td> <span class="tag tag-btn" onclick="document.getElementById('Fancast-digitals-remark').scrollIntoView({ behavior: 'smooth' })">音源說明👇</span></td>
+            </tr>
+            <tr>
+                <td>實體銷量</td>
+                <td>各團均分10000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('Fancast-album-remark').scrollIntoView({ behavior: 'smooth' })">銷量說明👇</span></td>
+            </tr>
+            <tr>
+                <td>SNS</td>
+                <td>各團均分10000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('Fancast-SNS-remark').scrollIntoView({ behavior: 'smooth' })">SNS說明👇</span></td>
+            </tr>
+            <tr>
+                <td>Broadcast<br>放送分</td>
+                <td>各團均分40000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('Fancast-broadcast-remark').scrollIntoView({ behavior: 'smooth' })">放送說明👇</span></td>
+            </tr>
+            <tr>
+                <td>事前投票</td>
+                <td>2000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('Fancast-vote1-remark').scrollIntoView({ behavior: 'smooth' })">投票說明👇</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+
+                                <div class="image-wrapper" id="Fancast-digitals-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">🎵 音源 (佔比 60%)</div>
+                <span class="app-badge">核心主要項</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>Melon, Genie, Bugs, Flo, Vibe 等韓國主流音源榜單。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>主要統計每日獨立收聽數與下載量，依比例換算成分數。<br><span style="color: #ff3b30;">※需數位音源任一周榜單200名內才計入。</span></div>
+            </div>
+        </div>
+                    </div>
+
+                                <div class="image-wrapper" id="Fancast-album-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">💿 銷量 (佔比 5%)</div>
+                <span class="app-badge">實體專輯</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>Hanteo Chart、CIRCLE CHART(原Gaon榜)。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>採計首週或當週實體專輯之總銷售張數。</div>
+            </div>
+        </div>
+                    </div>
+
+                                <div class="image-wrapper" id="Fancast-SNS-remark">
+                 <div class="app-card">
+                     <div class="app-header">
+                         <div class="app-title">📱 SNS (佔比 5%)</div>
+                         <span class="app-badge">音樂平台</span>
+                     </div>
+                     <div class="info-row">
+                         <div class="info-label">採計渠道</div>
+                         <div>CIRCLE/Youtube/Tiktok。</div>
+                     </div>
+                     <div class="info-row">
+                         <div class="info-label">計算規則</div>
+                         <div>以CIRCLE SOCIAL榜為準，基本上看YT+Tiktok。</div>
+                     </div>
+                 </div>
+                    </div> 
+
+                                <div class="image-wrapper" id="Fancast-broadcast-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">📺 放送 (佔比 20%)</div>
+                <span class="app-badge">放送節目</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>KBS打歌舞台/廣播。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>參加音銀打歌+打歌舞台觀看數、在電台的播放次數。</div>
+            </div>
+        </div>
+                    </div>
+
+                                <div class="image-wrapper" id="Fancast-vote1-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">🗳️ 事前投票 (佔比 10%)</div>
+                <span class="app-badge">全網投票</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>coogoong事前投票。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>1.每日簽到(隨簽到日增加每日獲得數量)+刷廣告。<br>2.需使用藍心投票，一票50藍心，投票一次最多500票，CD10分鐘<span style="color: #ff3b30;">(愛心30天過期)。</span>每週一 14:00 ～ 每週三 10:00 (GMT+8)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+            <div id="mcd-page" class="page">
+    <button class="back-btn" onclick="switchPage('vote-page')">⏎ 返回節目選單</button>
+        
+<span class="header-title">M Countdown (MCD)</span>
+  
+<div class="header.weight-header">
+    <header>
+        <h2>總分統計權重</h2>
+    </header>
+    </div>
+
+<div class="ratio-progress-container">
+    <div class="ratio-progress-bar">
+        <div class="ratio-segment seg-music" style="width: 45.45%;">音源50%<br>CIRCLE Global Kpop Chart</div>
+        <div class="ratio-segment seg-sales" style="width: 13.64%;">銷量15%<br>CIRCLE</div>
+        <div class="ratio-segment seg-sns" style="width: 13.64%;">SNS15%<br>Youtube</div>
+        <div class="ratio-segment seg-broadcast" style="width: 9.09%;">放送10%<br>Mnet</div>
+        <div class="ratio-segment seg-pre" style="width: 9.09%;">事前<br>投票10%</div>
+        <div class="ratio-segment seg-live" style="width: 9.09%;">實時<br>投票10%</div>
+    </div>
+    <div class="ratio-legend">
+        <div class="legend-item"><span class="legend-dot seg-music"></span>音源 50%</div>
+        <div class="legend-item"><span class="legend-dot seg-sales"></span>銷量 15%</div>
+        <div class="legend-item"><span class="legend-dot seg-sns"></span>SNS 15%</div>
+        <div class="legend-item"><span class="legend-dot seg-broadcast"></span>放送 10%</div>
+        <div class="legend-item"><span class="legend-dot seg-pre"></span>事前投票 10%</div>
+        <div class="legend-item"><span class="legend-dot seg-live"></span>實時投票 10%</div>
+
+    </div>
+</div>
+ <div class="detail-btn-wrapper">
+    <button class="detail-score-btn" onclick="switchPage('mcd-detail-page')">詳細計分 ➔</button>
+</div>
+
+<div class="header.weight-header">
+    <header>
+        <h2>投票App教學</h2>
+    </header>
+    </div>
+   
+            <div class="app-card">
+                <div class="app-header">
+                    <div class="app-title">② MCD(實時/事前投票)</div>
+<div class="app-row" style="display: flex; justify-content: space-between; align-items: center;">
+<img src="https://i-dle-melon.github.io/vote/M_Countdown/Mnet Plus.png" alt="" class="app-icon" style="margin-left: auto; margin-right: 6px;cursor: pointer;"onclick="openApp('mnetplus')">
+                    <button class="app-badge" onclick="openApp('mnetplus')"style="cursor: pointer;">Mnet Plus<br>👈開啟App</button>
+    </div>
+                </div>
+                <div class="info-row"><div class="info-label">🕒 播出時間</div><div>每週四 17:00 (GMT+8)</div></div>
+                <div class="info-row"><div class="info-label">🗳️ 事前投票</div><div>每週五 23:00 ～ 每週二 22:59 (GMT+8)</div></div>
+                <div class="info-row"><div class="info-label">🗳️ 實時投票</div><div>週四約17:10 ~ 18:10 (GMT+8)</div></div>
+                
+                <div class="tutorial-section">
+                    <button class="toggle-tutorial-btn" onclick="toggleTutorial('mcd-tut')">查看詳細圖文教學 <span>▼</span></button>
+                    <div id="mcd-tut" class="tutorial-content">
+
+                        <p style="color:#aaa; font-size:14px;">以下標籤直接跳轉圖片⇩</p>
+
+                        <span class="tag tag-btn" onclick="document.getElementById('Mnet Plus-vote').scrollIntoView({ behavior: 'smooth' })">#投票教學👈</span>
+                        <span class="tag tag-btn" onclick="document.getElementById('Mnet Plus-vote1-expired').scrollIntoView({ behavior: 'smooth' })">#投票說明👇</span>
+
+                                <div class="image-wrapper" id="Mnet Plus-vote1-expired">
+        <div class="app-card">
+            <div class="app-header">
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">規則</div>
+                <div>①事前:1次5票。每週五 23:00 ～ 每週二 22:59 (GMT+8)<br>②實時:1次5票，不用存票。<br>週四約17:10，限時1小時，請在時限內投完。<br>③<span style="color: #ff3b30;">一個設備僅限一個帳號</span></div>
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">小訣竅</div>
+                <div>※平時可以簽到&看廣告存票，打歌期有實時以外的宣傳投票。<br><span style="color: #ff3b30;">不要浪費錢課金。</span></div>
+
+        </div>
+                    </div> </div> 
+                        <p style="color:#aaa; font-size:14px;">以下為完整步驟圖解：</p>
+
+                                <div class="image-wrapper" id="Mnet Plus-vote">
+                            <span class="step-badge">投票步驟 1</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/M_Countdown/Mnet Plus/投票1.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/M_Countdown/Mnet Plus/投票2.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/M_Countdown/Mnet Plus/投票3.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 4</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/M_Countdown/Mnet Plus/投票4.jpg" alt="沒有圖片請重整頁面稍等載入">
+                        </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 5</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/M_Countdown/Mnet Plus/投票5.jpg" alt="沒有圖片請重整頁面稍等載入">
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+<div id="mcd-detail-page" class="page">
+    <button class="back-btn" onclick="switchPage('mcd-page')">⏎ 返回教學介面</button>
+    
+<div class="container">
+    <header>
+        <h2>M Countdown (Mnet)詳細計分</h2>
+    </header>
+        </div>
+
+    <p style="color: #aaa; font-size: 14px; margin-bottom: 20px;">以下為各個計分項目的詳細計算方式與管道說明：</p>
+
+<div class="app-card">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+        <h3 style="margin: 0;">計分模式</h3>
+        <span class="tag tag-btn" onclick="document.getElementById('score-modal').style.display='flex'">SNS音源一覽圖☝️</span>
+    </div>
+</div>
+
+    <table class="score-table">
+        <thead>
+            <tr>
+                <th>各項</th>
+                <th>總分<br>1.1萬分</th>
+                <th>備註</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>數位音源</td>
+                <td>5000分</td>
+                <td> <span class="tag tag-btn" onclick="document.getElementById('mcd-digitals-remark').scrollIntoView({ behavior: 'smooth' })">音源說明👇</span></td>
+            </tr>
+            <tr>
+                <td>實體銷量</td>
+                <td>1500分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('mcd-album-remark').scrollIntoView({ behavior: 'smooth' })">銷量說明👇</span></td>
+            </tr>
+            <tr>
+                <td>SNS</td>
+                <td>1500分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('mcd-SNS-remark').scrollIntoView({ behavior: 'smooth' })">SNS說明👇</span></td>
+            </tr>
+            <tr>
+                <td>Broadcast<br>放送分</td>
+                <td>1000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('mcd-broadcast-remark').scrollIntoView({ behavior: 'smooth' })">放送說明👇</span></td>
+            </tr>
+            <tr>
+                <td>事前投票</td>
+                <td>1000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('mcd-vote1-remark').scrollIntoView({ behavior: 'smooth' })">事前說明👇</span></td>
+            </tr>
+            <tr>
+                <td>實時投票</td>
+                <td>1000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('mcd-vote2-remark').scrollIntoView({ behavior: 'smooth' })">實時說明👇</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+
+
+                                <div class="image-wrapper" id="mcd-digitals-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">🎵 音源 (佔比 50%)</div>
+                <span class="app-badge">核心主要項</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>CIRCLE Global K-pop Chart。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>Apple Music、Youtube Music、Bugs、Melon、Genie、Flo<br><span style="color: #ff3b30;">(MCD&音中是唯二計入國際音樂平台的)。</span></div>
+            </div>
+        </div>
+                    </div>
+
+                                <div class="image-wrapper" id="mcd-album-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">💿 銷量 (佔比 15%)</div>
+                <span class="app-badge">實體專輯</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>CIRCLE CHART(原Gaon榜)。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>採計首週或當週實體專輯之總銷售張數。</div>
+            </div>
+        </div>
+                    </div>
+
+                                <div class="image-wrapper" id="mcd-SNS-remark">
+                 <div class="app-card">
+                     <div class="app-header">
+                         <div class="app-title">📱 SNS (佔比 15%)</div>
+                         <span class="app-badge">音樂平台</span>
+                     </div>
+                     <div class="info-row">
+                         <div class="info-label">採計渠道</div>
+                         <div>Youtube/Tiktok。</div>
+                     </div>
+                     <div class="info-row">
+                         <div class="info-label">計算規則</div>
+                         <div>Youtube MV觀看數(10%)<br>Tiktok引用音源+觀看/點讚(5%)。</div>
+                     </div>
+                 </div>
+                    </div> 
+
+                                <div class="image-wrapper" id="mcd-broadcast-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">📺 放送 (佔比 10%)</div>
+                <span class="app-badge">放送節目</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>MNET打歌舞台。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>①藝人是否有參加MCD，擔任特別MC有加分。<br>②上週打歌舞台在YT MNET TV的觀看數。</div>
+            </div>
+        </div>
+                    </div>
+
+                                <div class="image-wrapper" id="mcd-vote1-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">🗳️ 事前投票 (佔比 10%)</div>
+                <span class="app-badge">全網投票</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>Mnet Plus事前投票。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>1次5票，不用存票。<br>每週五 23:00 ～ 每週二 22:59 (GMT+8)</div>
+                     </div>
+                 </div>
+                    </div> 
+                                <div class="image-wrapper" id="mcd-vote2-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">🗳️ 實時投票 (佔比 10%)</div>
+                <span class="app-badge">全網投票</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>Mnet Plus實時投票。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>1次5票，不用存票。<br>週四約17:10，限時1小時，請在時限內投完。</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+            <div id="musiccore-page" class="page">
+    <button class="back-btn" onclick="switchPage('vote-page')">⏎ 返回節目選單</button>
+      
+<span class="header-title">Show! Music Core (音樂中心)</span>
+  
+<div class="header.weight-header">
+    <header>
+        <h2>總分統計權重</h2>
+    </header>
+    </div>
+
+<div class="ratio-progress-container">
+    <div class="ratio-progress-bar">
+        <div class="ratio-segment seg-music" style="width: 50%;">音源50%<br>CIRCLE</div>
+        <div class="ratio-segment seg-sales" style="width: 10%;">銷量10%<br>CIRCLE</div>
+        <div class="ratio-segment seg-sns" style="width: 10%;">SNS<br>10%<br>YT</div>
+        <div class="ratio-segment seg-broadcast" style="width: 5%;">放送<br>5%<br>MBC<br>電台</div>
+        <div class="ratio-segment seg-pre" style="width: 15%;">事前<br>投票<br>15%<br>(App10%)</div>
+        <div class="ratio-segment seg-live" style="width: 10%;">實時<br>投票<br>10%<br>(App6%)</div>
+    </div>
+    <div class="ratio-legend">
+        <div class="legend-item"><span class="legend-dot seg-music"></span>音源 50%</div>
+        <div class="legend-item"><span class="legend-dot seg-sales"></span>銷量 10%</div>
+        <div class="legend-item"><span class="legend-dot seg-sns"></span>SNS 10%</div>
+        <div class="legend-item"><span class="legend-dot seg-broadcast"></span>放送 5%</div>
+        <div class="legend-item"><span class="legend-dot seg-pre"></span>事前投票 15%</div>
+        <div class="legend-item"><span class="legend-dot seg-live"></span>實時投票 10%</div>
+
+    </div>
+</div>
+<div class="detail-btn-wrapper">
+    <button class="detail-score-btn" onclick="switchPage('musiccore-detail-page')">詳細計分 ➔</button>
+</div>
+
+<div class="header.weight-header">
+    <header>
+        <h2>投票App教學</h2>
+    </header>
+    </div>
+   
+            <div class="app-card">
+                <div class="app-header">
+                    <div class="app-title">③ 音樂中心(實時/事前投票) </div>
+<div class="app-row" style="display: flex; justify-content: space-between; align-items: center;">
+<img src="https://i-dle-melon.github.io/vote/Show_Music/Mubeat.png" alt="" class="app-icon" style="margin-left: auto; margin-right: 6px;cursor: pointer;"onclick="openApp('mubeat')">
+                    <button class="app-badge" onclick="openApp('mubeat')"style="cursor: pointer;">Mubeat<br>👈開啟App</button>
+    </div>
+                </div>
+                <div class="info-row"><div class="info-label">🕒 播出時間</div><div>每週六 14:20 ~ 15:20 (GMT+8)</div></div>
+                <div class="info-row"><div class="info-label">🗳️ 事前投票</div><div>每週二 17:00 ～ 每週四 10:00 (GMT+8)</div></div>
+                <div class="info-row"><div class="info-label">🗳️ 實時投票</div><div>每週六 14:20 ~ 15:20 (GMT+8)(Mubeat)</div></div>
+                
+                <div class="tutorial-section">
+                    <button class="toggle-tutorial-btn" onclick="toggleTutorial('Mubeat-tut')">查看詳細圖文教學 <span>▼</span></button>
+                    <div id="Mubeat-tut" class="tutorial-content">
+
+                        <p style="color:#aaa; font-size:14px;">以下標籤直接跳轉圖片⇩</p>
+                        <span class="tag tag-btn" onclick="document.getElementById('Mubeat-tickets').scrollIntoView({ behavior: 'smooth' })">#存票教學👈</span>
+                        <span class="tag tag-btn" onclick="document.getElementById('Mubeat-vote').scrollIntoView({ behavior: 'smooth' })">#投票教學👈</span>
+ 
+<button class="pay-btn" data-gallery="Mubeat-pay">#小卡pay💳</button>
+ 
+                        <span class="tag tag-btn" onclick="document.getElementById('Mubeat-vote1-expired').scrollIntoView({ behavior: 'smooth' })">#投票&過期說明👇</span>
+
+                                <div class="image-wrapper" id="Mubeat-vote1-expired">
+        <div class="app-card">
+            <div class="app-header">
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">規則</div>
+                <div>①事前投票，Mubeat<span style="color: #ff3b30;">紅心90天過期。</span><br>②實時投票，週六約14:20~15:20(GMT+8)，請在時限內投完。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">小訣竅</div>
+                <div>※廣告CD很短，可先把其他長CDApp看完再穿插Mubeat。</div>
+
+        </div>
+                    </div> </div>   
+                        <p style="color:#aaa; font-size:14px;">以下為完整步驟圖解：</p>
+                                <div class="image-wrapper" id="Mubeat-tickets">
+                            <span class="step-badge">存票步驟 1</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Music/Mubeat/存票1.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">存票步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Music/Mubeat/存票2.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">存票步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Music/Mubeat/存票3.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper" id="Mubeat-vote">
+                            <span class="step-badge">投票步驟 1</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Music/Mubeat/投票1.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Music/Mubeat/投票2.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Music/Mubeat/投票3.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+
+            <div class="app-card">
+                <div class="app-header">
+                    <div class="app-title">③ 音樂中心(實時/事前投票) </div>
+<div class="app-row" style="display: flex; justify-content: space-between; align-items: center;">
+<img src="https://i-dle-melon.github.io/vote/Show_Music/Muniverse.png" alt="" class="app-icon" style="margin-left: auto; margin-right: 6px;cursor: pointer;"onclick="openApp('muniverse')">
+                    <button class="app-badge" onclick="openApp('muniverse')"style="cursor: pointer;">Muniverse<br>👈開啟App</button>
+    </div>
+                </div>
+                <div class="info-row"><div class="info-label">🕒 播出時間</div><div>每週六 14:20 ~ 15:20 (GMT+8)</div></div>
+                <div class="info-row"><div class="info-label">🗳️ 事前投票</div><div>每週二 17:00 ～ 每週四 10:00 (GMT+8)</div></div>
+                <div class="info-row"><div class="info-label">🗳️ 實時投票</div><div>每週六 14:20 ~ 15:20 (GMT+8)(Muniverse)</div></div>
+                
+                <div class="tutorial-section">
+                    <button class="toggle-tutorial-btn" onclick="toggleTutorial('Muniverse-tut')">查看詳細圖文教學 <span>▼</span></button>
+                    <div id="Muniverse-tut" class="tutorial-content">
+
+                        <p style="color:#aaa; font-size:14px;">以下標籤直接跳轉圖片⇩</p>
+                        <span class="tag tag-btn" onclick="document.getElementById('Muniverse-tickets').scrollIntoView({ behavior: 'smooth' })">#存票教學👈</span>
+                        <span class="tag tag-btn" onclick="document.getElementById('Muniverse-vote').scrollIntoView({ behavior: 'smooth' })">#投票教學👈</span>
+ 
+<button class="pay-btn" data-gallery="Muniverse-pay">#小卡pay💳</button>
+ 
+                        <span class="tag tag-btn" onclick="document.getElementById('Muniverse-vote1-expired').scrollIntoView({ behavior: 'smooth' })">#投票&過期說明👇</span>
+
+                                <div class="image-wrapper" id="Muniverse-vote1-expired">
+        <div class="app-card">
+            <div class="app-header">
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">規則</div>
+                <div>①事前投票，Muniverse<span style="color: #ff3b30;">藍心60天過期。</span><br>②實時投票，週六約14:20~15:20(GMT+8)，請在時限內投完。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">小訣竅</div>
+                <div>※廣告CD約1分鐘，可先把其他長CDApp看完再穿插Muniverse。</div>
+
+        </div>
+                    </div> </div>  
+                        <p style="color:#aaa; font-size:14px;">以下為完整步驟圖解：</p>
+                                <div class="image-wrapper" id="Muniverse-tickets">
+                            <span class="step-badge">存票步驟 1</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Music/Muniverse/存票1.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">存票步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Music/Muniverse/存票2.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper" id="Muniverse-vote">
+                            <span class="step-badge">投票步驟 1</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Music/Muniverse/投票1.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Music/Muniverse/投票2.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Music/Muniverse/投票3.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 4</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Music/Muniverse/投票4.jpg" alt="沒有圖片請重整頁面稍等載入">
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+<div id="musiccore-detail-page" class="page">
+    <button class="back-btn" onclick="switchPage('musiccore-page')">⏎ 返回教學介面</button>
+    
+<div class="container">
+    <header>
+        <h2>Show! Music Core 音樂中心 (MBC) 詳細計分</h2>
+    </header>
+        </div>
+
+    <p style="color: #aaa; font-size: 14px; margin-bottom: 20px;">以下為各個計分項目的詳細計算方式與管道說明：</p>
+
+<div class="app-card">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+        <h3 style="margin: 0;">計分模式</h3>
+        <span class="tag tag-btn" onclick="document.getElementById('score-modal').style.display='flex'">SNS音源一覽圖☝️</span>
+    </div>
+</div>
+
+    <table class="score-table">
+        <thead>
+            <tr>
+                <th>各項</th>
+                <th>總分<br>1萬分</th>
+                <th>備註</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>數位音源</td>
+                <td>5000分</td>
+                <td> <span class="tag tag-btn" onclick="document.getElementById('musiccore-digitals-remark').scrollIntoView({ behavior: 'smooth' })">音源說明👇</span></td>
+            </tr>
+            <tr>
+                <td>實體銷量</td>
+                <td>1000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('musiccore-album-remark').scrollIntoView({ behavior: 'smooth' })">銷量說明👇</span></td>
+            </tr>
+            <tr>
+                <td>SNS</td>
+                <td>1000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('musiccore-SNS-remark').scrollIntoView({ behavior: 'smooth' })">SNS說明👇</span></td>
+            </tr>
+            <tr>
+                <td>Broadcast<br>放送分</td>
+                <td>1000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('musiccore-broadcast-remark').scrollIntoView({ behavior: 'smooth' })">放送說明👇</span></td>
+            </tr>
+            <tr>
+                <td>事前投票</td>
+                <td>1000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('musiccore-vote1-remark').scrollIntoView({ behavior: 'smooth' })">事前說明👇</span></td>
+            </tr>
+            <tr>
+                <td>實時投票</td>
+                <td>1000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('musiccore-vote2-remark').scrollIntoView({ behavior: 'smooth' })">實時說明👇</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+
+                                <div class="image-wrapper" id="musiccore-digitals-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">🎵 音源 (佔比 50%)</div>
+                <span class="app-badge">核心主要項</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>CIRCLE Global K-pop Chart。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>CIRCLE CHART(<span style="color: #ff3b30;">Apple Music、Spotify</span>、Melon、Bugs、Vibe、Genie、Flo、Samsung Music、V Coloring)。</div>
+            </div>
+        </div>
+                    </div>
+
+                                <div class="image-wrapper" id="musiccore-album-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">💿 銷量 (佔比 10%)</div>
+                <span class="app-badge">實體專輯</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>CIRCLE CHART(原Gaon榜)。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>採計首週或當週實體專輯之總銷售張數。</div>
+            </div>
+        </div>
+                    </div>
+
+                                <div class="image-wrapper" id="musiccore-SNS-remark">
+                 <div class="app-card">
+                     <div class="app-header">
+                         <div class="app-title">📱 SNS (佔比 10%)</div>
+                         <span class="app-badge">音樂平台</span>
+                     </div>
+                     <div class="info-row">
+                         <div class="info-label">採計渠道</div>
+                         <div>Youtube/Tiktok。</div>
+                     </div>
+                     <div class="info-row">
+                         <div class="info-label">計算規則</div>
+                         <div>Youtube MV觀看數(10%)<br>Tiktok引用音源+觀看/點讚(5%)。</div>
+                     </div>
+                 </div>
+                    </div> 
+
+                                <div class="image-wrapper" id="musiccore-broadcast-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">📺 放送 (佔比 5%)</div>
+                <span class="app-badge">放送節目</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>MBC打歌舞台。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>①藝人是否有參加MBC<br>②上週打歌舞台在YT/MBC/TV的觀看數。</div>
+            </div>
+        </div>
+                    </div>
+
+                                <div class="image-wrapper" id="musiccore-vote1-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">🗳️ 事前投票 (佔比 15%)</div>
+                <span class="app-badge">全網投票</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>Mubeat/Muniverse事前投票。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>①MBC定期招募的2000名，在節目播出前先看過內容進行評分。(5%)<br>②App投票，<span style="color: #ff3b30;">Mubeat90天/Muniverse60天過期。</span>(10%)每週二 17:00 ～ 每週四 10:00 (GMT+8)</div>
+                     </div>
+                 </div>
+                    </div> 
+                                <div class="image-wrapper" id="musiccore-vote2-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">🗳️ 實時投票 (佔比 10%)</div>
+                <span class="app-badge">全網投票</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>Mubeat/Muniverse實時投票。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>韓國人簡訊投票。(4%)<br>APP投票，週六約14:20~15:20(GMT+8)，請在時限內投完。(6%)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+            <div id="inkigayo-page" class="page">
+    <button class="back-btn" onclick="switchPage('vote-page')">⏎ 返回節目選單</button>
+        
+<span class="header-title">Inkigayo (人氣歌謠)</span>
+
+<div class="header.weight-header">
+    <header>
+        <h2>總分統計權重</h2>
+    </header>
+    </div>
+
+<div class="ratio-progress-container">
+    <div class="ratio-progress-bar">
+        <div class="ratio-segment seg-music" style="width: 50%;">音源50%<br>Melon,Genie,Flo,CIRCLE Glonal</div>
+        <div class="ratio-segment seg-sales" style="width: 10%;">銷量10%<br>CIRCLE</div>
+        <div class="ratio-segment seg-sns" style="width: 20%;">SNS<br>20%<br>Youtube</div>
+        <div class="ratio-segment seg-broadcast" style="width: 10%;">放送<br>10%<br>SBS<br>電台</div>
+        <div class="ratio-segment seg-pre" style="width: 10%;">事前<br>投票<br>5%<br></div>
+        <div class="ratio-segment seg-live" style="width: 10%;">實時<br>投票<br>5%<br></div>
+    </div>
+    <div class="ratio-legend">
+        <div class="legend-item"><span class="legend-dot seg-music"></span>音源 50%</div>
+        <div class="legend-item"><span class="legend-dot seg-sales"></span>銷量 10%</div>
+        <div class="legend-item"><span class="legend-dot seg-sns"></span>SNS 20%</div>
+        <div class="legend-item"><span class="legend-dot seg-broadcast"></span>放送 10%</div>
+        <div class="legend-item"><span class="legend-dot seg-pre"></span>事前投票 5%</div>
+        <div class="legend-item"><span class="legend-dot seg-live"></span>實時投票 5%</div>
+    </div>
+</div><div class="detail-btn-wrapper">
+    <button class="detail-score-btn" onclick="switchPage('inkigayo-detail-page')">詳細計分 ➔</button>
+</div>
+ 
+<div class="header.weight-header">
+    <header>
+        <h2>投票App教學</h2>
+    </header>
+    </div>
+   
+            <div class="app-card">
+                <div class="app-header">
+                    <div class="app-title">④ 人氣歌謠(事前投票)</div>
+<div class="app-row" style="display: flex; justify-content: space-between; align-items: center;">
+<img src="https://i-dle-melon.github.io/vote/Inkigayo/LiNC.png" alt="" class="app-icon" style="margin-left: auto; margin-right: 6px;cursor: pointer;"onclick="openApp('linc')">
+                    <button class="app-badge" onclick="openApp('linc')"style="cursor: pointer;">Linc<br>👈開啟App</button>
+    </div>
+                </div>
+                <div class="info-row"><div class="info-label">🕒 播出時間</div><div>每週日 14:20 (GMT+8)</div></div>
+                <div class="info-row"><div class="info-label">🗳️ 事前投票</div><div>每週一 11:00 ～ 每週五 22:59 (GMT+8) (Linc / tin )<br><span style="color: #ff3b30;">事前投票是要前一周開始投票哦!</span></div></div>
+                <div class="info-row"><div class="info-label">🗳️ 實時投票</div><div>每週日 14:35 ～  15:25 (GMT+8)(Higher)</div></div>
+                
+                <div class="tutorial-section">
+                    <button class="toggle-tutorial-btn" onclick="toggleTutorial('LiNC-tut')">查看詳細圖文教學 <span>▼</span></button>
+                    <div id="LiNC-tut" class="tutorial-content">
+
+                        <p style="color:#aaa; font-size:14px;">以下標籤直接跳轉圖片⇩</p>
+                        <span class="tag tag-btn" onclick="document.getElementById('Linc-tickets').scrollIntoView({ behavior: 'smooth' })">#存票教學👈</span>
+                        <span class="tag tag-btn" onclick="document.getElementById('Linc-vote').scrollIntoView({ behavior: 'smooth' })">#投票教學👈</span>
+ 
+<button class="pay-btn" data-gallery="LiNC-pay">#小卡pay💳</button>
+ 
+                        <span class="tag tag-btn" onclick="document.getElementById('Linc-vote1-expired').scrollIntoView({ behavior: 'smooth' })">#投票&過期說明👇</span>
+
+                                <div class="image-wrapper" id="Linc-vote1-expired">
+        <div class="app-card">
+            <div class="app-header">
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">規則</div>
+                <div><span style="color: #ff3b30;">LiNC跟tin一定要登陸同帳號</span>，愛心同步到LiNC一起事前投票。每週一11:00 ～ 每週五 22:59(GMT+8)(Linc/tin)<span style="color: #ff3b30;">180天過期。</span></div>
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">小訣竅</div>
+                <div>※廣告CD10分鐘，可先看完換別的app。</div>
+
+        </div>
+                    </div> </div> 
+
+                        <p style="color:#aaa; font-size:14px;">以下為完整步驟圖解：</p>
+                                <div class="image-wrapper" id="Linc-tickets">
+                            <span class="step-badge">存票步驟 1</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/LiNC/存票1.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">存票步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/LiNC/存票2.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">存票步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/LiNC/存票3.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper" id="Linc-vote">
+                            <span class="step-badge">投票步驟 1</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/LiNC/投票1.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/LiNC/投票2.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/LiNC/投票3.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 4</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/LiNC/投票4.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+            <div class="app-card">
+                <div class="app-header">
+                    <div class="app-title">④ 人氣歌謠(事前投票)</div>
+<div class="app-row" style="display: flex; justify-content: space-between; align-items: center;">
+<img src="https://i-dle-melon.github.io/vote/Inkigayo/tin.png" alt="" class="app-icon" style="margin-left: auto; margin-right: 6px;cursor: pointer;"onclick="openApp('tin')">
+                    <button class="app-badge" onclick="openApp('tin')"style="cursor: pointer;">tin<br>👈開啟App</button>
+    </div>
+                </div>
+                <div class="info-row"><div class="info-label">🕒 播出時間</div><div>每週日 14:20 (GMT+8)</div></div>
+                <div class="info-row"><div class="info-label">🗳️ 事前投票</div><div>每週一 11:00 ～ 每週五 22:59 (GMT+8) (Linc / tin )<br><span style="color: #ff3b30;">事前投票是要前一周開始投票哦!</span></div></div>
+                <div class="info-row"><div class="info-label">🗳️ 實時投票</div><div>每週日 14:35 ～  15:25 (GMT+8)(Higher)</div></div>
+                
+                <div class="tutorial-section">
+                    <button class="toggle-tutorial-btn" onclick="toggleTutorial('tin-tut')">查看詳細圖文教學 <span>▼</span></button>
+                    <div id="tin-tut" class="tutorial-content">
+
+                        <p style="color:#aaa; font-size:14px;">以下標籤直接跳轉圖片⇩</p>
+                        <span class="tag tag-btn" onclick="document.getElementById('tin-tickets').scrollIntoView({ behavior: 'smooth' })">#存票教學👈</span>
+                        <span class="tag tag-btn" onclick="document.getElementById('tin-vote').scrollIntoView({ behavior: 'smooth' })">#投票教學👈</span>
+                        <span class="tag tag-btn" onclick="document.getElementById('tin-vote1-expired').scrollIntoView({ behavior: 'smooth' })">#投票&過期說明👇</span>
+
+                                <div class="image-wrapper" id="tin-vote1-expired">
+        <div class="app-card">
+            <div class="app-header"> 
+           </div>
+            <div class="info-row">
+                <div class="info-label-vote">規則</div>
+                <div><span style="color: #ff3b30;">LiNC跟tin一定要登陸同帳號</span>，愛心同步到LiNC一起事前投票。每週一11:00 ～ 每週五 22:59(GMT+8)(Linc/tin)<span style="color: #ff3b30;">180天過期。</span></div>
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">小訣竅</div>
+                <div>※廣告CD15分鐘，可先看完換別的app。</div>
+
+        </div>
+                    </div> </div>
+
+                        <p style="color:#aaa; font-size:14px;">以下為完整步驟圖解：</p>
+                                <div class="image-wrapper" id="tin-tickets">
+                            <span class="step-badge">存票步驟 1</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/tin/存票1.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">存票步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/tin/存票2.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">存票步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/tin/存票3.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper" id="tin-vote">
+                            <span class="step-badge">⚠️投票步驟⚠️ </span>
+</步驟後面可以新增文字，可備註>
+        <span style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px;">LiNC跟tin一定要登陸同帳號，愛心同步到LiNC一起投票。 </span>  
+                    </div>
+                </div>
+            </div>
+        </div>
+
+<div class="app-card">
+                <div class="app-header">
+                    <div class="app-title">④ 人氣歌謠(實時投票)</div>
+<div class="app-row" style="display: flex; justify-content: space-between; align-items: center;">
+<img src="https://i-dle-melon.github.io/vote/Inkigayo/Higher.png" alt="" class="app-icon" style="margin-left: auto; margin-right: 6px;<button class="app-badge" onclick="openApp('higher')"style="cursor: pointer;">
+                    <button class="app-badge" onclick="openApp('higher')"style="cursor: pointer;">Higher<br>👈開啟App</button>
+    </div>
+                </div>
+                <div class="info-row"><div class="info-label">🕒 播出時間</div><div>每週日 14:20 (GMT+8)</div></div>
+                <div class="info-row"><div class="info-label">🗳️ 事前投票</div><div>每週一 11:00 ～ 每週五 22:59 (GMT+8) (Linc / tin )</div></div>
+                <div class="info-row"><div class="info-label">🗳️ 實時投票</div><div>每週日 14:35 ～  15:25 (GMT+8)(Higher)</div></div>
+                
+                <div class="tutorial-section">
+                    <button class="toggle-tutorial-btn" onclick="toggleTutorial('Higher-tut')">查看詳細圖文教學 <span>▼</span></button>
+            
+                    <div id="Higher-tut" class="tutorial-content">
+                        <p style="color:#aaa; font-size:14px;">以下標籤直接跳轉圖片⇩</p>
+                        <span class="tag tag-btn" onclick="document.getElementById('Higher-tickets').scrollIntoView({ behavior: 'smooth' })">#存票教學👈</span>
+                        <span class="tag tag-btn" onclick="document.getElementById('Higher-vote').scrollIntoView({ behavior: 'smooth' })">#投票教學👈</span>
+ 
+<button class="pay-btn" data-gallery="Higher-pay">#小卡pay💳</button>
+ 
+                        <span class="tag tag-btn" onclick="document.getElementById('Higher-vote1-expired').scrollIntoView({ behavior: 'smooth' })">#投票&過期說明👇</span>
+
+                                <div class="image-wrapper" id="Higher-vote1-expired">
+        <div class="app-card">
+            <div class="app-header">
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">規則</div>
+                <div>Higher實時投票，週六約14:25~15:25(GMT+8)，請在時限內投完。<br>1次最多5票，需250鑽石，<span style="color: #ff3b30;">紅鑽90天過期。</span></div>
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">小訣竅</div>
+                <div>※簽到、輪盤、梯子做完，都有機會出現右上角有小紅鑽的圖示，優先點擊存鑽。</div>
+
+        </div>
+                    </div> </div> 
+                        <p style="color:#aaa; font-size:14px;">以下為完整步驟圖解：</p>
+                                <div class="image-wrapper" id="Higher-tickets">
+<div style="display: flex; justify-content: flex-start; align-items: center; width: 100%;">
+        <span class="step-badge" style="margin-bottom: 0;">存票步驟 1</span>
+</步驟後面可以新增文字，可備註>
+        <span style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px;"> </span>  
+    </div>
+
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/Higher/存票1.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">存票步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/Higher/存票2.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">存票步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/Higher/存票3.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper" id="Higher-vote">
+                            <span class="step-badge">投票步驟 1</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/Higher/投票1.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/Higher/投票2.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/Higher/投票3.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 4</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Inkigayo/Higher/投票4.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+<div id="inkigayo-detail-page" class="page">
+    <button class="back-btn" onclick="switchPage('inkigayo-page')">⏎ 返回教學介面</button>
+    
+<div class="container">
+    <header>
+        <h2>Inkigayo 人氣歌謠(SBS) 詳細計分</h2>
+    </header>
+        </div>
+
+    <p style="color: #aaa; font-size: 14px; margin-bottom: 20px;">以下為各個計分項目的詳細計算方式與管道說明：</p>
+
+<div class="app-card">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+        <h3 style="margin: 0;">計分模式</h3>
+        <span class="tag tag-btn" onclick="document.getElementById('score-modal').style.display='flex'">SNS音源一覽圖☝️</span>
+    </div>
+</div>
+    <table class="score-table">
+        <thead>
+            <tr>
+                <th>各項</th>
+                <th>總分<br>1萬分</th>
+                <th>備註</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>數位音源</td>
+                <td>5000分</td>
+                <td> <span class="tag tag-btn" onclick="document.getElementById('inkigayo-digitals-remark').scrollIntoView({ behavior: 'smooth' })">音源說明👇</span></td>
+            </tr>
+            <tr>
+                <td>實體銷量</td>
+                <td>1000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('inkigayo-album-remark').scrollIntoView({ behavior: 'smooth' })">銷量說明👇</span></td>
+            </tr>
+            <tr>
+                <td>SNS</td>
+                <td>2000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('inkigayo-SNS-remark').scrollIntoView({ behavior: 'smooth' })">SNS說明👇</span></td>
+            </tr>
+            <tr>
+                <td>Broadcast<br>放送分</td>
+                <td>1000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('inkigayo-broadcast-remark').scrollIntoView({ behavior: 'smooth' })">放送說明👇</span></td>
+            </tr>
+            <tr>
+                <td>事前投票</td>
+                <td>500分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('inkigayo-vote1-remark').scrollIntoView({ behavior: 'smooth' })">事前說明👇</span></td>
+            </tr>
+            <tr>
+                <td>實時投票</td>
+                <td>500分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('inkigayo-vote2-remark').scrollIntoView({ behavior: 'smooth' })">實時說明👇</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+
+                                <div class="image-wrapper" id="inkigayo-digitals-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">🎵 音源 (佔比 50%)</div>
+                <span class="app-badge">核心主要項</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>Melon、Genie、Flo、CIRCLE CHART等韓國主流音源榜單。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>主要統計每日獨立收聽數與下載量，依比例換算成分數。<br>※需CIRCLE Digita榜前200才計入。</div>
+            </div>
+        </div>
+                    </div>
+
+                                <div class="image-wrapper" id="inkigayo-album-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">💿 銷量 (佔比 10%)</div>
+                <span class="app-badge">實體專輯</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>CIRCLE CHART(原Gaon榜)。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>採計首週或當週實體專輯之總銷售張數。</div>
+            </div>
+        </div>
+                    </div>
+
+                                <div class="image-wrapper" id="inkigayo-SNS-remark">
+                 <div class="app-card">
+                     <div class="app-header">
+                         <div class="app-title">📱 SNS (佔比 20%)</div>
+                         <span class="app-badge">音樂平台</span>
+                     </div>
+                     <div class="info-row">
+                         <div class="info-label">採計渠道</div>
+                         <div>Youtube。</div>
+                     </div>
+                     <div class="info-row">
+                         <div class="info-label">計算規則</div>
+                         <div>Youtube MV觀看數。</div>
+                     </div>
+                 </div>
+                    </div> 
+
+                                <div class="image-wrapper" id="inkigayo-broadcast-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">📺 放送 (佔比 10%)</div>
+                <span class="app-badge">放送節目</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>SBS打歌舞台。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>①藝人是否有參加SBS<br>②上週打歌舞台在YT/SBS/TV、電台的播放次數。</div>
+            </div>
+        </div>
+                    </div>
+
+                                <div class="image-wrapper" id="inkigayo-vote1-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">🗳️ 事前投票 (佔比 5%)</div>
+                <span class="app-badge">全網投票</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>LiNC/tin事前投票。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>LiNC跟tin一定要登陸同帳號，愛心同步到LiNC一起投票。每週一11:00 ～ 每週五 22:59(GMT+8)(Linc/tin)<span style="color: #ff3b30;">180天過期。</span></div>
+                     </div>
+                 </div>
+                    </div> 
+                                <div class="image-wrapper" id="inkigayo-vote2-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">🗳️ 實時投票 (佔比 5%)</div>
+                <span class="app-badge">全網投票</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>Higher實時投票。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>Higher投票，週六約14:25~15:25(GMT+8)，請在時限內投完。<br>1次最多5票，需250鑽石，<span style="color: #ff3b30;">紅鑽90天過期。</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+            <div id="showchamp-page" class="page">
+    <button class="back-btn" onclick="switchPage('vote-page')">⏎ 返回節目選單</button>
+        
+<span class="header-title">SHOW champion (冠軍秀)</span>
+
+<div class="header.weight-header">
+    <header>
+        <h2>總分統計權重</h2>
+    </header>
+    </div>
+
+<div class="ratio-progress-container">
+    <div class="ratio-progress-bar">
+        <div class="ratio-segment seg-music" style="width: 35%;">音源35%<br>Melon,Genie,Flo,Bugs</div>
+        <div class="ratio-segment seg-sales" style="width: 15%;">銷量<br>15%<br>Hanteo</div>
+        <div class="ratio-segment seg-sns" style="width: 10%;">SNS<br>10%<br>YT</div>
+        <div class="ratio-segment seg-broadcast" style="width: 20%;">放送20%<br>MBC Music</div>
+        <div class="ratio-segment seg-pre" style="width: 20%;">事前投票<br>20%</div>
+
+    </div>
+    <div class="ratio-legend">
+        <div class="legend-item"><span class="legend-dot seg-music"></span>音源 35%</div>
+        <div class="legend-item"><span class="legend-dot seg-sales"></span>銷量 15%</div>
+        <div class="legend-item"><span class="legend-dot seg-sns"></span>SNS 10%</div>
+        <div class="legend-item"><span class="legend-dot seg-broadcast"></span>放送 20%</div>
+        <div class="legend-item"><span class="legend-dot seg-pre"></span>事前投票 20%</div>
+
+    </div>
+</div>
+ <div class="detail-btn-wrapper">
+    <button class="detail-score-btn" onclick="switchPage('showchamp-detail-page')">詳細計分 ➔</button>
+</div>
+
+<div class="header.weight-header">
+    <header>
+        <h2>投票App教學</h2>
+    </header>
+    </div>
+   
+            <div class="app-card">
+                <div class="app-header">
+                    <div class="app-title">⑤ 冠軍秀(事前投票)</div>
+<div class="app-row" style="display: flex; justify-content: space-between; align-items: center;">
+<img src="https://i-dle-melon.github.io/vote/Show_Champion/IDOL CHAMP.png" alt="" class="app-icon" style="margin-left: auto; margin-right: 6px;cursor: pointer;"onclick="openApp('idolchamp')">
+                    <button class="app-badge" onclick="openApp('idolchamp')"style="cursor: pointer;">IDOL CHAMP<br>👈開啟App</button>
+    </div>
+                </div>
+                <div class="info-row"><div class="info-label">🕒 播出時間</div><div>每週 14:15 (GMT+8)</div></div>
+                <div class="info-row"><div class="info-label">🗳️ 事前投票</div><div>每週五 17:00 ～ 每週一 10:00 (GMT+8)</div></div>
+                
+                <div class="tutorial-section">
+    <button class="toggle-tutorial-btn" onclick="toggleTutorial('showchamp-tut')">查看詳細圖文教學 <span>▼</span></button>
+    
+    <div id="showchamp-tut" class="tutorial-content">
+
+                        <p style="color:#aaa; font-size:14px;">以下標籤直接跳轉圖片⇩</p>
+                        <span class="tag tag-btn" onclick="document.getElementById('IDOL CHAMP-tickets').scrollIntoView({ behavior: 'smooth' })">#存票教學👈</span>
+                        <span class="tag tag-btn" onclick="document.getElementById('IDOL CHAMP-vote').scrollIntoView({ behavior: 'smooth' })">#投票教學👈</span>
+                        <span class="tag tag-btn" onclick="document.getElementById('IDOL CHAMP-vote1-expired').scrollIntoView({ behavior: 'smooth' })">#投票&過期說明👇</span>
+
+                                <div class="image-wrapper" id="IDOL CHAMP-vote1-expired">
+        <div class="app-card">
+            <div class="app-header">
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">規則</div>
+                <div>①每日簽到+刷廣告+做更多任務。每週五 17:00 ～ 每週一 10:00 (GMT+8)<br>②藍色愛心<span style="color: #ff3b30;">每月底過期。</span></div>
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">小訣竅</div>
+                <div>※廣告CD很短，可先把其他長CDApp看完再穿插IDOL CHAMP。</div>
+
+        </div>
+                    </div> </div>  
+                        <p style="color:#aaa; font-size:14px;">以下為完整步驟圖解：</p>
+                                <div class="image-wrapper" id="IDOL CHAMP-tickets">
+                            <span class="step-badge">存票步驟 1</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Champion/IDOL CHAMP/存票1.png" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">存票步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Champion/IDOL CHAMP/存票2.png" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">存票步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Champion/IDOL CHAMP/存票3.png" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper" id="IDOL CHAMP-vote">
+                            <span class="step-badge">投票步驟 1</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Champion/IDOL CHAMP/投票1.png" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Champion/IDOL CHAMP/投票2.png" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Champion/IDOL CHAMP/投票3.png" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 4</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Champion/IDOL CHAMP/投票4.png" alt="沒有圖片請重整頁面稍等載入">
+                        </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 5</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Champion/IDOL CHAMP/投票5.png" alt="沒有圖片請重整頁面稍等載入">
+                        </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 6</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Champion/IDOL CHAMP/投票6.png" alt="沒有圖片請重整頁面稍等載入">
+                        </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 7</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Champion/IDOL CHAMP/投票7.png" alt="沒有圖片請重整頁面稍等載入">
+                        </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">投票步驟 8</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Show_Champion/IDOL CHAMP/投票8.png" alt="沒有圖片請重整頁面稍等載入">
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+<div id="showchamp-detail-page" class="page">
+    <button class="back-btn" onclick="switchPage('showchamp-page')">⏎ 返回教學介面</button>
+    
+<div class="container">
+    <header>
+        <h2>SHOW champion 冠軍秀(MBC Music)詳細計分</h2>
+    </header>
+        </div>
+
+    <p style="color: #aaa; font-size: 14px; margin-bottom: 20px;">以下為各個計分項目的詳細計算方式與管道說明：</p>
+
+<div class="app-card">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+        <h3 style="margin: 0;">計分模式</h3>
+        <span class="tag tag-btn" onclick="document.getElementById('score-modal').style.display='flex'">SNS音源一覽圖☝️</span>
+    </div>
+</div>
+
+    <table class="score-table">
+        <thead>
+            <tr>
+                <th>各項</th>
+                <th>總分<br>1萬分</th>
+                <th>備註</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>數位音源</td>
+                <td>3500分</td>
+                <td> <span class="tag tag-btn" onclick="document.getElementById('showchamp-digitals-remark').scrollIntoView({ behavior: 'smooth' })">音源說明👇</span></td>
+            </tr>
+            <tr>
+                <td>實體銷量</td>
+                <td>1500分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('showchamp-album-remark').scrollIntoView({ behavior: 'smooth' })">銷量說明👇</span></td>
+            </tr>
+            <tr>
+                <td>SNS</td>
+                <td>1000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('showchamp-SNS-remark').scrollIntoView({ behavior: 'smooth' })">SNS說明👇</span></td>
+            </tr>
+            <tr>
+                <td>Broadcast<br>放送分</td>
+                <td>2000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('showchamp-broadcast-remark').scrollIntoView({ behavior: 'smooth' })">放送說明👇</span></td>
+            </tr>
+            <tr>
+                <td>事前投票</td>
+                <td>2000分</td>
+                <td><span class="tag tag-btn" onclick="document.getElementById('showchamp-vote1-remark').scrollIntoView({ behavior: 'smooth' })">投票說明👇</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+
+
+                                <div class="image-wrapper" id="showchamp-digitals-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">🎵 音源 (佔比 35%)</div>
+                <span class="app-badge">核心主要項</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div> Bugs, Melon, Genie, Flo 等韓國主流音源榜單。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>主要統計每日獨立收聽數與下載量，依比例換算成分數。</div>
+            </div>
+        </div>
+                    </div>
+
+                                <div class="image-wrapper" id="showchamp-album-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">💿 銷量 (佔比 15%)</div>
+                <span class="app-badge">實體專輯</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>Hanteo Chart。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>採計首週或當週實體專輯之總銷售張數。</div>
+            </div>
+        </div>
+                    </div>
+
+                                <div class="image-wrapper" id="showchamp-SNS-remark">
+                 <div class="app-card">
+                     <div class="app-header">
+                         <div class="app-title">📱 SNS (佔比 10%)</div>
+                         <span class="app-badge">音樂平台</span>
+                     </div>
+                     <div class="info-row">
+                         <div class="info-label">採計渠道</div>
+                         <div>Youtube。</div>
+                     </div>
+                     <div class="info-row">
+                         <div class="info-label">計算規則</div>
+                         <div>Youtube MV觀看數。</div>
+                     </div>
+                 </div>
+                    </div> 
+
+                                <div class="image-wrapper" id="showchamp-broadcast-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">📺 放送 (佔比 20%)</div>
+                <span class="app-badge">放送節目</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>MBC Music冠軍秀打歌舞台。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>視藝人是否有參加冠軍秀，<span style="color: #ff3b30;">(i-dle通常不參加)</span>未出席則放送分為0，參與事前錄製及生放通常會落在600-2000分。</div>
+            </div>
+        </div>
+                    </div>
+
+                                <div class="image-wrapper" id="showchamp-vote1-remark">
+        <div class="app-card">
+            <div class="app-header">
+                <div class="app-title">🗳️ 事前投票 (佔比 20%)</div>
+                <span class="app-badge">全網投票</span>
+            </div>
+            <div class="info-row">
+                <div class="info-label">採計渠道</div>
+                <div>IDOL CHAMP事前投票。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">計算規則</div>
+                <div>①每日簽到+刷廣告+做更多任務。每週五 17:00 ～ 每週一 10:00 (GMT+8)<br>②藍色愛心<span style="color: #ff3b30;">每月底過期。</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div id="Kakao-page" class="page">
+        <button class="back-btn" onclick="switchPage('home-page')">⏎ 返回首頁</button>
+        
+        <div class="header.weight-header">
+    <header>
+        <h2>Kakao 網頁註冊點讚教學</h2>
+    </header>
+    </div>
+   
+            <div class="app-card">
+                <div class="app-header">
+                    <div class="app-title">👤 Kakao 註冊點讚教學</div>
+<div class="app-row" style="display: flex; justify-content: space-between; align-items: center;">
+<img src="https://i-dle-melon.github.io/vote/Kakao/Kakao/Kakao.png" alt="" class="app-icon" style="margin-left: auto; margin-right: 6px;cursor: pointer;"onclick="openApp('kakao')">
+                    <button class="app-badge" onclick="openApp('kakao')"style="cursor: pointer;">Kakao<br>👈開啟網頁</button>
+    </div>
+                </div>
+
+                
+                <div class="tutorial-section">
+                    <button class="toggle-tutorial-btn" onclick="toggleTutorial('Kakao-tut')">查看詳細圖文教學 <span>▼</span></button>
+                    <div id="Kakao-tut" class="tutorial-content">
+
+                        <p style="color:#aaa; font-size:14px;">以下標籤直接跳轉圖片⇩</p>
+                        <span class="tag tag-btn" onclick="document.getElementById('Kakao-tickets').scrollIntoView({ behavior: 'smooth' })">#註冊教學👈</span>
+                        <span class="tag tag-btn" onclick="document.getElementById('Kakao-vote').scrollIntoView({ behavior: 'smooth' })">#點讚教學👈</span>
+ 
+<button class="pay-btn" onclick="openApp('melonlike')"style="cursor: pointer;">👉#melon點讚網頁</button>
+ 
+                        <span class="tag tag-btn" onclick="document.getElementById('Kakao-vote1-expired').scrollIntoView({ behavior: 'smooth' })">#規則&註冊限制  👇</span>
+
+                                <div class="image-wrapper" id="Kakao-vote1-expired">
+        <div class="app-card">
+            <div class="app-header">
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">規則</div>
+                <div><span style="color: #ff3b30;">推薦網頁登入</span><br>註冊只需要信箱，電話可以跳過。<br>完成後進melon網頁點讚。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">登入<br>限制</div>
+                <div><span style="color: #ff3b30;">melon APP一天只能登入2個帳號。</span><br>推薦使用網頁。</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">註冊<br>限制</div>
+                <div><span style="color: #ff3b30;">※Kakao只能註冊10個，多了全部會鎖。</span></div>
+
+        </div>
+                    </div> </div>  
+                        <p style="color:#aaa; font-size:14px;">以下為完整步驟圖解：</p>
+                                <div class="image-wrapper" id="Kakao-tickets">
+                            <span class="step-badge">註冊步驟 1</span>
+                    </步驟後面可以新增文字，可備註>
+        <a href="https://accounts.kakao.com/weblogin/create_account#selectVerifyMethod" target="_blank" rel="noopener noreferrer" 
+style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px; text-decoration: underline;">
+    分頁網址:accounts.kakao.com/weblogin/create_account#selectVerifyMethod
+</a>
+
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/註冊1.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">註冊步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/註冊2.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">註冊步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/註冊3.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">註冊步驟 4</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/註冊4.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">註冊步驟 5</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/註冊5.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">註冊步驟 6</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/註冊6.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">註冊步驟 7</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/註冊7.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">註冊步驟 8</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/註冊8.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper" id="Kakao-vote">
+                            <span class="step-badge">點讚步驟 1</span>
+                    </步驟後面可以新增文字，可備註>
+        <a href="https://m2.melon.com/artist/detail.htm?artistId=2137482" target="_blank" rel="noopener noreferrer" 
+style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px; text-decoration: underline;">
+    分頁網址:m2.melon.com/artist/detail.htm?artistId=2137482
+</a>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/點讚1.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">點讚步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/點讚2.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">點讚步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/點讚3.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">點讚步驟 4</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/點讚4.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">點讚步驟 5</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/點讚5.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">點讚步驟 6</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/點讚6.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">點讚步驟 7</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/點讚7.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">點讚步驟 8</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/點讚8.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">點讚步驟 9</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/點讚9.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">點讚步驟 10</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Kakao/Kakao/點讚10.jpg" alt="沒有圖片請重整頁面稍等載入">
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    <div id="Melon-page" class="page">
+        <button class="back-btn" onclick="switchPage('home-page')">⏎ 返回首頁</button>
+        
+        <div class="app-grid">
+            <div class="app-card">
+                <div class="app-header">
+                    <div class="app-title">🍈 Melon 切瓜刷音源教學</div>
+                    <div class="app-badge">Melon</div>
+                </div>
+                <p style="color:#aaa; font-size:14px;">包含每日常規刷榜、不重複收聽規則與歌單設置。</p>
+                <div class="tutorial-section">
+                    <button class="toggle-tutorial-btn" onclick="toggleTutorial('melon-tut')">查看詳細圖文教學 <span>▼</span></button>
+                    <div id="melon-tut" class="tutorial-content">
+                        <p style="color:#aaa; font-size:14px;">音源教學圖表配置與圖片放置區...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    <div id="Youtube-page" class="page">
+        <button class="back-btn" onclick="switchPage('home-page')">⏎ 返回首頁</button>
+        
+        <div class="app-grid">
+            <div class="app-card">
+                <div class="app-header">
+                    <div class="app-title">🎵 Youtube 無痕刷音源教學</div>
+                    <div class="app-badge">Youtube</div>
+                </div>
+                <p style="color:#aaa; font-size:14px;">包含每日常規刷榜、不重複收聽規則與歌單設置。</p>
+                <div class="tutorial-section">
+                    <button class="toggle-tutorial-btn" onclick="toggleTutorial('Youtube-tut')">查看詳細圖文教學 <span>▼</span></button>
+                    <div id="Youtube-tut" class="tutorial-content">
+                        <p style="color:#aaa; font-size:14px;">音源教學圖表配置與圖片放置區...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    <div id="Tiktok-page" class="page">
+        <button class="back-btn" onclick="switchPage('home-page')">⏎ 返回首頁</button>
+        
+        <div class="header.weight-header">
+    <header>
+        <h2>Tiktok 引用刷音源教學</h2>
+    </header>
+    </div>
+   
+            <div class="app-card">
+                <div class="app-header">
+                    <div class="app-title">♪ Tiktok 引用刷音源教學</div>
+<div class="app-row" style="display: flex; justify-content: space-between; align-items: center;">
+<img src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok.png" alt="" class="app-icon" style="margin-left: auto; margin-right: 6px;cursor: pointer;"onclick="openApp('tiktok')">
+                    <button class="app-badge" onclick="openApp('tiktok')"style="cursor: pointer;">Tiktok<br>👈開啟App</button>
+    </div>
+                </div>
+
+                
+                <div class="tutorial-section">
+                    <button class="toggle-tutorial-btn" onclick="toggleTutorial('Tiktok-tut')">查看詳細圖文教學 <span>▼</span></button>
+                    <div id="Tiktok-tut" class="tutorial-content">
+
+                        <p style="color:#aaa; font-size:14px;">以下標籤直接跳轉圖片⇩</p>
+                        <span class="tag tag-btn" onclick="document.getElementById('Tiktok-tickets').scrollIntoView({ behavior: 'smooth' })">#註冊教學👈</span>
+                        <span class="tag tag-btn" onclick="document.getElementById('Tiktok-vote').scrollIntoView({ behavior: 'smooth' })">#引用教學👈</span>
+ 
+<button class="pay-btn" onclick="openApp('tiktok')"style="cursor: pointer;">👉#引用網頁</button>
+ 
+                        <span class="tag tag-btn" onclick="document.getElementById('Tiktok-vote1-expired').scrollIntoView({ behavior: 'smooth' })">#規則&註冊限制  👇</span>
+
+                                <div class="image-wrapper" id="Tiktok-vote1-expired">
+        <div class="app-card">
+            <div class="app-header">
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">規則</div>
+                <div>
+①發的圖文不限，<span style="color: #ff3b30;">但一定要帶#hashtag和引用音源才有算。</span><br>②一天短時間內發60則貼文會有不固定的CD時間(2至22小時都有可能)，建議可以換帳號繼續發。 </div>
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">#<br>限制</div>
+                <div>Hashtag最多只能帶5個，回歸後可能會依官方小改:<br><span style="color: #ff3b30;">
+#아이들 #idle
+#소연 #SOYEON
+#퇴사할게여</span></div>
+            </div>
+            <div class="info-row">
+                <div class="info-label-vote">提醒</div>
+                <div><span style="color: #ff3b30;">※</span>官方音源上架後，以防大家引用錯，會再截圖給大家。</div>
+
+        </div>
+                    </div> </div>  
+                        <p style="color:#aaa; font-size:14px;">以下為完整步驟圖解：</p>
+                                <div class="image-wrapper" id="Tiktok-tickets">
+                            <span class="step-badge">註冊步驟 1</span>
+                    </步驟後面可以新增文字，可備註>
+        <a href="https://www.tiktok.com/upload?lang=zh" target="_blank" rel="noopener noreferrer" 
+style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px; text-decoration: underline;">
+    分頁網址:https://www.tiktok.com/upload?lang=zh
+</a>
+
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/註冊1.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">註冊步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/註冊2.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">註冊步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/註冊3.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper" id="Tiktok-vote">
+                            <span class="step-badge">引用步驟 1</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/引用1.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">引用步驟 2</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/引用2.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">引用步驟 3</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/引用3.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">引用步驟 4</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/引用4.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">引用步驟 5</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/引用5.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">引用步驟 6</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/引用6.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">引用步驟 7</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/引用7.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">引用步驟 8</span>
+</步驟後面可以新增文字，可備註>
+        <span style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px;">複製範本:<br>#아이들 #idle
+#소연 #SOYEON
+#퇴사할게여 </span>  
+
+
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/引用8.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+    <div id="Shazam-page" class="page">
+        <button class="back-btn" onclick="switchPage('home-page')">⏎ 返回首頁</button>
+        
+        <div class="app-grid">
+            <div class="app-card">
+                <div class="app-header">
+                    <div class="app-title">♪ Shazam 搜尋刷音源教學</div>
+                    <div class="app-badge">Shazam</div>
+                </div>
+                <p style="color:#aaa; font-size:14px;">包含每日常規刷榜、不重複收聽規則與歌單設置。</p>
+                <div class="tutorial-section">
+                    <button class="toggle-tutorial-btn" onclick="toggleTutorial('Shazam-tut')">查看詳細圖文教學 <span>▼</span></button>
+                    <div id="Shazam-tut" class="tutorial-content">
+                        <p style="color:#aaa; font-size:14px;">音源教學圖表配置與圖片放置區...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- 彈窗calendar 結構 -->
+    <div class="modalcalendar-overlay" id="calendarModal" onclick="closeCalendarOnOverlay(event)">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeCalendar()">&times;</button>
+<div class="calendar-header">
+            <button class="nav-refresh-btn" onclick="goToToday()">回當月</button>
+            <button class="nav-btn" onclick="changeMonth(-1)">❮</button>
+            <span id="calendarMonth"></span>
+            <button class="nav-btn" onclick="changeMonth(1)">❯</button>
+
+            <!-- 標籤說明 -->
+            <div class="calendar-legend">
+                <span class="legend-item"><span class="event-tag tag-before">前</span> 事前投票</span>
+                <span class="legend-item"><span class="event-tag tag-realtime">時</span> 實時投票</span>
+                <span class="legend-item"><span class="event-link">文字</span> 教學連結</span>
+
+                            <!-- 手動刷新按鈕 -->
+            <button class="nav-refresh-btn" onclick="forceRefreshEvents()" title="強制更新資料">刷新</button>
+            </div>
+                </div>
+
+
+            <div class="calendar-grid">
+                <!-- 星期標頭 -->
+                <div class="weekday-header">日</div>
+                <div class="weekday-header">一</div>
+                <div class="weekday-header">二</div>
+                <div class="weekday-header">三</div>
+                <div class="weekday-header">四</div>
+                <div class="weekday-header">五</div>
+                <div class="weekday-header">六</div>
+            </div>
+
+            <!-- 日期填入區塊 -->
+            <div class="calendar-grid" id="calendarDays"></div>
+        </div>
+    </div>
+    <!-- 彈窗calendar 結束-->
+
+    <!-- 彈窗gallery 結構 -->
+
+<div id="image-gallery-modal" class="gallery-modal">
+    <div class="gallery-content">
+        <span class="gallery-close" onclick="closeGalleryModal()">&times;</span>
+
+    <!-- 左側垂直文字 -->
+    <div class="vertical-text">每次打歌都不同，課金建議詳情，請進<a href="https://line.me/ti/g2/lquJYJWOJudOLkUti7prCFNeSbvKF2vn2AdEYQ?utm_source=invitation&utm_medium=link_copy&utm_campaign=default" 
+           target="_blank" 
+           style="color: #00cd3c; text-decoration: none; font-weight: bold;">
+           i-dle西瓜攤
+        </a>賴社群</div>
+
+        <!-- 👇 修改：移除左右按鈕，改用滑動軌道 (slider) -->
+        <div id="gallery-slider" class="gallery-slider">
+        </div>
+
+        <div id="gallery-dots-container" class="gallery-dots"></div>
+        </div>
+    </div>
+</div>
+
+    <!-- 彈窗gallery 結束 -->
+
+<div class="back-to-top" onclick="scrollToTop()">⤒
+</div>
+
+<div class="task-fab" onclick="document.getElementById('sheet-modal').style.display='flex'">📋
+</div>
+
+<div class="calendar-fab"  onclick="openCalendar()">📅
+</div>
+
+
+<!-- 公告彈窗 -->
+<div id="notice-modal" class="modal-overlay" style="display: none;">
+    <div class="notice-modal-content">
+        <h3>📢 最新公告</h3>
+        <div class="notice-body">
+            <p><b>※</b>娟lo回歸！請開始存票哦！<br><b>人歌的事前投票開放囉。</b></p>
+            <p class="update-version">網頁更新v1.0.3 _ _ _ 2026.09.07<br>-新增♪ Tiktok 引用刷音源教學。<br>網頁更新v1.0.2 _ _ _ 2026.09.02<br>-新增人氣歌謠(SBS)事前投票是要提前一周投票提醒。<br>網頁更新v1.0.1 _ _ _ 2026.08.20<br>-新增Kakao網頁註冊點讚教學。<br>-新增彈窗最新公告</p>
+        </div>
+<!-- 新增：底部操作區（包含勾選框與關閉按鈕） -->
+        <div class="notice-footer">
+            <label class="dont-show-label">
+                <input type="checkbox" id="dont-show-today">
+                不再提醒
+            </label>
+        <button id="close-notice-btn" class="notice-close-btn">我知道了</button>
+    </div>
+</div>
+</div>
+
+
+<script>
+
+// 1. 新增：定義每個頁面 ID 對應的網址路徑
+    const pageUrls = {
+        'home-page': '首頁',
+        'vote-page': '音放存票投票教學',
+        'mubank-page': '音放存票投票教學/Music_Bank_音樂銀行',
+        'mcd-page': '音放存票投票教學/M_Countdown_MCD',
+        'musiccore-page': '音放存票投票教學/Show! Music Core 音樂中心',
+        'inkigayo-page': '音放存票投票教學/Inkigayo_人氣歌謠',
+        'showchamp-page': '音放存票投票教學/SHOW_champion_冠軍秀',
+        'Kakao-page': 'Kakao_網頁註冊點讚教學',
+        'Melon-page': 'Melon_切瓜刷音源教學',
+        'Youtube-page': 'Youtube_無痕刷音源教學',
+        'Tiktok-page': 'Tiktok_引用刷音源教學',
+        'Shazam-page': 'Shazam_搜尋刷音源教學',
+        'mubank-detail-page': '音放詳細計分/Music Bank 音樂銀行(KBS)',
+        'mcd-detail-page': '音放詳細計分/M Countdown MCD(Mnet)',
+        'musiccore-detail-page': '音放詳細計分/Show! Music Core 音樂中心 (MBC)',
+        'inkigayo-detail-page': '音放詳細計分/Inkigayo 人氣歌謠(SBS)',
+        'showchamp-detail-page': '音放詳細計分/SHOW champion 冠軍秀(MBC Music)'
+    };
+
+// 2. 核心切換頁面工人（整合公告控制與 URL 修改）
+function switchPage(pageId, isBackAction = false) {
+    let targetPage = document.getElementById(pageId);
+
+    // 防呆：如果找不到該 ID，預設顯示第一個 .page 避免整頁全白
+    if (!targetPage) {
+        console.warn(`找不到 ID 為 "${pageId}" 的頁面，自動退回第一個頁面。`);
+        targetPage = document.querySelector('.page');
+        if (!targetPage) return;
+    }
+
+    // 隱藏所有頁面並顯示目標頁面
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+    });
+    targetPage.classList.add('active');
+
+    // 滾動回頂部
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // 判斷是否為首頁 (先在最外面宣告，讓後面大家都能用)
+        const isHomePage = (pageId === 'home-page' || pageId === 'home' || pageId === '');
+
+    // 1：控制公告（首頁隱藏，其他頁面顯示）
+    const warning = document.getElementById('rotateWarning');
+    if (warning) {
+        if (isHomePage) {
+            warning.style.setProperty('display', 'none', 'important');
+        } else {
+            warning.style.setProperty('display', 'block', 'important');
+        }
+    }
+
+    // 2. 控制懸浮按鈕 (📋 task-fab & 📅 calendar-fab)
+    const taskFab = document.querySelector('.task-fab');
+      const calendarFab = document.querySelector('.calendar-fab');
+
+      if (taskFab) {
+        // 懸浮按鈕通常用 flex 或 block 呈現，這裡首頁設 none，其他頁設 flex
+          taskFab.style.setProperty('display', isHomePage ? 'none' : 'flex', 'important');
+      }
+      if (calendarFab) {
+        calendarFab.style.setProperty('display', isHomePage ? 'none' : 'flex', 'important');
+      }
+
+    // 動態修改網址列（按上一頁觸發時不重複記錄）
+    if (!isBackAction) {
+        const subPath = pageUrls[pageId] !== undefined ? pageUrls[pageId] : '';
+        const baseUrl = window.location.origin + window.location.pathname;
+        const newUrl = subPath && subPath !== '首頁' ? `${baseUrl}?page=${encodeURIComponent(subPath)}` : baseUrl;
+        
+        history.pushState({ pageId: pageId }, '', newUrl);
+    }
+}
+
+// 3. 監聽瀏覽器「上一頁/下一頁」
+window.addEventListener('popstate', function(event) {
+    if (event.state && event.state.pageId) {
+        switchPage(event.state.pageId, true);
+    } else {
+        switchPage('home-page', true);
+    }
+});
+
+// 4. 初次載入或重新整理時讀取網址參數開頁
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    let pageParam = urlParams.get('page');
+    let initialPage = 'home-page';
+
+    if (pageParam) {
+        pageParam = decodeURIComponent(pageParam);
+        const matchedPageId = Object.keys(pageUrls).find(key => pageUrls[key] === pageParam);
+        if (matchedPageId) {
+            initialPage = matchedPageId;
+        }
+    }
+
+    history.replaceState({ pageId: initialPage }, '', window.location.href);
+    switchPage(initialPage, true);
+});
+
+    // 控制詳細圖文教學展開/收合的邏輯
+    function toggleTutorial(tutId) {
+        const content = document.getElementById(tutId);
+        content.classList.toggle('show');
+        
+        // 動態更換按鈕的上下箭頭符號
+        const btn = content.previousElementSibling;
+        if(content.classList.contains('show')) {
+            btn.querySelector('span').innerText = '▲';
+        } else {
+            btn.querySelector('span').innerText = '▼';
+        }
+    }
+
+
+// 回到最頂端功能
+function scrollToTop() {
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth' // 平滑捲動效果
+    });
+}
+// 設定試算表 CSV 發布網址
+const SPREADSHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQrrQmNaPZEiutOwd0S5B8vY_HLa8EMXQC9eH6gtSlcK6ClfQIW4djWdmYZ0Ru7cQN7Xt0Aq6wlKy7j/pub?output=csv';
+let events = {};
+let currentDate = new Date(); // 記錄當前顯示的日期 (預設為今天)
+
+// 頁面載入完成後自動抓取資料
+document.addEventListener('DOMContentLoaded', () => {
+    fetchEventsFromSheet();
+});
+
+// 開啟行事曆彈窗
+function openCalendar() {
+    if (typeof renderCalendar === 'function') {
+        renderCalendar(); // ⭕ 關鍵：點擊開啟時立刻渲染日曆格子與日期
+    }
+    const modal = document.getElementById('calendarModal');
+    if (modal) modal.style.display = 'flex';
+    fetchEventsFromSheet(); // 開啟時確保抓取並更新資料
+}
+
+// 關閉行事曆彈窗
+function closeCalendar() {
+    const modal = document.getElementById('calendarModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function closeCalendarOnOverlay(e) {
+    if (e.target.classList.contains('modalcalendar-overlay')) {
+        closeCalendar();
+    }
+}
+
+// 切換月份函式
+function changeMonth(offset) {
+    currentDate.setDate(1); 
+    currentDate.setMonth(currentDate.getMonth() + offset);
+    renderCalendar();
+}
+
+// 回當月函式
+function goToToday() {
+  currentDate = new Date(); // 重置為今天的日期
+  renderCalendar();         // 重新繪製月曆
+}
+  
+// 當使用者按下重新整理按鈕時呼叫
+function forceRefreshEvents() {
+    fetchEventsFromSheet(true);
+}
+
+// 抓取試算表 CSV 資料
+async function fetchEventsFromSheet(isForce = false) {
+    try {
+        let url = SPREADSHEET_CSV_URL;
+        let fetchOptions = {};
+
+// 當傳入 isForce = true 時（點擊 刷新 按鈕），才會觸發下面這段
+            if (isForce) {
+            url += '&_t=' + Date.now();           // 加上當下的時間戳記
+            fetchOptions = { cache: 'no-store' }; // 強制瀏覽器不使用快取
+        }
+
+        const response = await fetch(url, fetchOptions);
+        const csvText = await response.text();
+        
+        if (typeof Papa === 'undefined') {
+            console.error('PapaParse 套件未成功載入，請檢查 head 區塊的 script 標籤！');
+            return;
+        }
+
+        Papa.parse(csvText, {
+            header: false,
+            skipEmptyLines: true,
+            complete: function(results) {
+                console.log('1. CSV 原始解析結果：', results.data);
+                events = processSheetData(results.data);
+                console.log('2. 轉換後的 events 物件：', events);
+                renderCalendar();
+                
+                if (isForce) {
+                    alert('資料已成功更新！');
+                }
+            }
+        });
+    } catch (error) {
+        console.error('抓取試算表失敗：', error);
+    }
+}
+
+
+// 轉換與清洗資料
+function processSheetData(data) {
+    const result = {};
+
+    for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        if (!row || row.length === 0) continue;
+
+        let rawDate = (row[0] || '')
+            .toString()
+            .replace(/[\u200B-\u200D\uFEFF]/g, '')
+            .replace(/／/g, '/')
+            .replace(/-/g, '/')
+            .trim();
+
+        const text = (row[1] || '').trim();
+        const link = (row[2] || '').trim();
+        const linkText = (row[3] || '').trim() || '連結';
+
+        if (!rawDate) continue;
+
+        const parts = rawDate.split('/');
+        if (parts.length === 3) {
+            const y = parts[0];
+            const m = String(parts[1]).padStart(2, '0');
+            const d = String(parts[2]).padStart(2, '0');
+            rawDate = `${y}/${m}/${d}`;
+        }
+
+        if (!result[rawDate]) {
+            result[rawDate] = [];
+        }
+
+        result[rawDate].push({ text, link, linkText });
+    }
+
+    return result;
+}
+
+// 渲染日曆
+function renderCalendar() {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    
+    const today = new Date();
+    const realYear = today.getFullYear();
+    const realMonth = today.getMonth();
+    const realDate = today.getDate();
+
+    const monthElement = document.getElementById('calendarMonth');
+    if (monthElement) {
+        monthElement.innerText = `${year} 年 ${month + 1} 月`;
+    }
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+
+    const daysContainer = document.getElementById('calendarDays');
+    if (!daysContainer) return;
+    daysContainer.innerHTML = '';
+
+    // 補齊第一天之前的空白格子
+    for (let i = 0; i < firstDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'day-cell';
+        emptyCell.style.border = 'none';
+        daysContainer.appendChild(emptyCell);
+    }
+
+    // 渲染日期格子
+    for (let day = 1; day <= totalDays; day++) {
+        const cell = document.createElement('div');
+        cell.className = 'day-cell';
+
+        if (day === realDate && month === realMonth && year === realYear) {
+            cell.classList.add('today');
+        }
+
+        const formattedMonth = String(month + 1).padStart(2, '0');
+        const formattedDay = String(day).padStart(2, '0');
+        const dateKey = `${year}/${formattedMonth}/${formattedDay}`;
+
+        let cellContent = `<span class="day-number">${day}</span>`;
+
+        if (events[dateKey]) {
+            const eventList = Array.isArray(events[dateKey]) 
+                ? events[dateKey] 
+                : (events[dateKey].items || [events[dateKey]]);
+
+eventList.forEach(evt => {
+    cellContent += `<div class="event-item">`;
+    
+    // 1. 自動判讀「事前」或「實時」並轉為圓點標籤
+    if (evt.text) {
+        let tagHTML = '';
+        const rawText = evt.text.trim();
+
+        if (rawText.includes('事前')) {
+            tagHTML = `<span class="event-tag tag-before" title="事前">前</span>`;
+        } else if (rawText.includes('實時')) {
+            tagHTML = `<span class="event-tag tag-realtime" title="實時">時</span>`;
+        } else {
+            // 如果是其他文字，保持原樣顯示
+            tagHTML = `<span class="event-text">${evt.text}</span>`;
+        }
+        
+        cellContent += tagHTML;
+    }
+    
+    // 2. 顯示 linkText（無論有無網址）
+    if (evt.link) {
+        cellContent += `<a href="${evt.link}" target="_self" class="event-link">${evt.linkText || '連結'}</a>`;
+    } else if (evt.linkText) {
+        cellContent += `<span class="event-link-text">${evt.linkText}</span>`;
+    }
+
+                cellContent += `</div>`;
+            });
+        }
+
+        cell.innerHTML = cellContent;
+        daysContainer.appendChild(cell);
+    }
+}
+
+// ⭕ 相冊圖片陣列與索引變數
+let galleryImages = []; // 儲存傳入的圖片網址清單
+
+
+// ⭕ 開啟彈窗
+function openGalleryModal(categoryKey) {
+    const imagesArray = GALLERY_DATA[categoryKey];
+
+    if (!imagesArray || imagesArray.length === 0) {
+        console.error(`找不到對應的圖片分類：${categoryKey}`);
+        return;
+    }
+
+    galleryImages = imagesArray;
+    
+    // 1. 先顯示彈窗 (讓瀏覽器能計算容器寬度)
+    const modal = document.getElementById('image-gallery-modal');
+    modal.style.display = 'flex';
+
+    // 2. 渲染圖片內容
+    renderGallery();
+
+    // 3. 強制滾動軸歸零 (加入延遲確保 DOM 已完全載入與渲染)
+    setTimeout(() => {
+        const slider = document.getElementById('gallery-slider');
+        if (slider) {
+            slider.scrollTo({ left: 0, behavior: 'instant' });
+        }
+    }, 50);
+}
+
+// ⭕ 關閉彈窗
+function closeGalleryModal() {
+    document.getElementById('image-gallery-modal').style.display = 'none';
+}
+
+// ⭕ 渲染圖片卡片與圓點
+function renderGallery() {
+    const slider = document.getElementById('gallery-slider');
+    const dotsContainer = document.getElementById('gallery-dots-container');
+
+    // 1.生成圖片卡片 HTML
+    slider.innerHTML = galleryImages.map((item, idx) => `
+        <div class="gallery-item">
+            <h3 class="gallery-item-title">${item.title || ''}</h3>
+            <img src="${item.src}" alt="圖片載入失敗，請重整稍後" draggable="false"   onerror="this.outerHTML='<span>圖片載入失敗，請重整稍後</span>';">
+            <p class="gallery-item-desc">${item.desc || ''}</p>
+        </div>
+    `).join('');
+
+    // 2.生成圓點
+    dotsContainer.innerHTML = galleryImages.map((_, idx) => 
+        `<span class="gallery-dot ${idx === 0 ? 'active' : ''}" onclick="scrollToSlide(${idx})"></span>`
+    ).join('');
+
+    // 3.監聽滑動事件更新圓點
+    slider.removeEventListener('scroll', handleGalleryScroll);
+    slider.addEventListener('scroll', handleGalleryScroll);
+}
+
+
+// ⭕ 監聽滑動位置以更新圓點
+function handleGalleryScroll() {
+    const slider = document.getElementById('gallery-slider');
+    const slideWidth = slider.clientWidth;
+    // 計算當前滑到第幾張
+    const currentIndex = Math.round(slider.scrollLeft / slideWidth);
+
+    const dots = document.querySelectorAll('.gallery-dot');
+    dots.forEach((dot, idx) => {
+        if (idx === currentIndex) {
+            dot.classList.add('active');
+        } else {
+            dot.classList.remove('active');
+        }
+    });
+}
+
+// ⭕ 點擊圓點跳轉指定圖片
+function scrollToSlide(index) {
+    const slider = document.getElementById('gallery-slider');
+    const slideWidth = slider.clientWidth;
+    slider.scrollTo({
+        left: slideWidth * index,
+        behavior: 'smooth'
+    });
+}
+
+// ⭕⭕ 電腦版滑鼠拖曳切換（網頁載入後自動綁定一次即可）
+document.addEventListener('DOMContentLoaded', () => {
+    const slider = document.getElementById('gallery-slider');
+    if (!slider) return;
+
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    slider.addEventListener('mousedown', (e) => {
+        isDown = true;
+        slider.classList.add('dragging');
+        startX = e.pageX - slider.offsetLeft;
+        scrollLeft = slider.scrollLeft;
+    });
+
+    slider.addEventListener('mouseleave', () => {
+        isDown = false;
+        slider.classList.remove('dragging');
+    });
+
+    slider.addEventListener('mouseup', () => {
+        isDown = false;
+        slider.classList.remove('dragging');
+    });
+
+    slider.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - slider.offsetLeft;
+        const walk = (x - startX) * 1.5; // 拖曳速度 multipliers
+        slider.scrollLeft = scrollLeft - walk;
+    });
+});
+
+// 點擊背景空白處關閉彈窗
+document.getElementById('image-gallery-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeGalleryModal();
+    }
+});
+
+// 集中管理所有彈窗圖片 ( key : [ 圖片網址陣列 ] )
+const GALLERY_DATA = {
+    // coogoong-pay教學圖片
+    'coogoong-pay': [
+    {
+        title: '每1帳號每月可購買月禮包',
+        src: 'https://i-dle-melon.github.io/vote/Music_Bank/Fancast/小卡pay1.jpg',
+        desc: '蘋果購買比安卓便宜<br>課金請謹慎評估，未成年請先徵得家人同意。'
+    },
+    {
+        title: '大課長系列',
+        src: 'https://i-dle-melon.github.io/vote/Music_Bank/Fancast/小卡pay2.jpg',
+        desc: '※音銀課金就是無底洞，請謹慎投入。<br>*可多帳號課金投票，輪流等10分鐘CD'
+    }
+    ],
+    
+    // mcd-pay教學圖片
+    'mcd-pay': [
+    ],
+
+    // Mubeat-pay教學圖片
+    'Mubeat-pay': [
+    {
+        title: '實時投票5票即可',
+        src: 'https://i-dle-melon.github.io/vote/Show_Music/Mubeat/小卡pay1.jpg',
+        desc: '蘋果購買比安卓便宜<br>課金請謹慎評估，未成年請先徵得家人同意。'
+    }
+    ],
+
+    // Muniverse-pay教學圖片
+    'Muniverse-pay': [
+    {
+        title: '實時投票5票即可',
+        src: 'https://i-dle-melon.github.io/vote/Show_Music/Muniverse/小卡pay1.jpg',
+        desc: '蘋果購買比安卓便宜<br>課金請謹慎評估，未成年請先徵得家人同意。'
+    }
+    ],
+
+    // LiNC-pay教學圖片
+    'LiNC-pay': [
+    {
+        title: '首頁右上角點P',
+        src: 'https://i-dle-melon.github.io/vote/Inkigayo/LiNC/小卡pay1.jpg',
+        desc: '蘋果購買比安卓便宜<br>課金請謹慎評估，未成年請先徵得家人同意。'
+    },
+    {
+        title: '5天400鑽就夠',
+        src: 'https://i-dle-melon.github.io/vote/Inkigayo/LiNC/小卡pay2.jpg',
+        desc: '8鑽=1票/10票=1天，投滿五天需400鑽。<br>*可多帳號課金投票'
+    }
+    ],
+
+    // tin-pay教學圖片
+    'tin-pay': [
+    ],
+
+    // Higher-pay教學圖片
+    'Higher-pay': [
+    {
+        title: '首頁右上角點鑽石',
+        src: 'https://i-dle-melon.github.io/vote/Inkigayo/Higher/小卡pay1.jpg',
+        desc: '蘋果購買比安卓便宜<br>課金請謹慎評估，未成年請先徵得家人同意。'
+    },
+    {
+        title: '實時投票5票即可',
+        src: 'https://i-dle-melon.github.io/vote/Inkigayo/Higher/小卡pay2.jpg',
+        desc: '5藍鑽=1票，最多可投5票。<br>*可多帳號課金投票'
+    }
+    ],
+
+    // IDOL-pay教學圖片
+    'IDOL-pay': [
+    ]
+};
+
+
+// 全域監聽器
+    document.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-gallery]');
+    if (target) {
+        const categoryKey = target.dataset.gallery;
+        openGalleryModal(categoryKey);
+    }
+});
+
+
+// 💡 每次更新公告內容時，修改此版本號即可讓所有人重新收到一次公告
+const ANNOUNCEMENT_ID = 'notice_v1.0.2'; 
+
+document.addEventListener('DOMContentLoaded', function() {
+    const noticeModal = document.getElementById('notice-modal');
+    const closeBtn = document.getElementById('close-notice-btn');
+    const dontShowCheckbox = document.getElementById('dont-show-today');
+
+    // 檢查使用者是否已經勾選過「不再提醒」
+    const hasOptedOut = localStorage.getItem('hide_announcement') === ANNOUNCEMENT_ID ||
+                        sessionStorage.getItem('hide_announcement') === ANNOUNCEMENT_ID;
+
+    // 若未勾選過不再提醒，則開啟彈窗
+    if (!hasOptedOut && noticeModal) {
+        noticeModal.style.display = 'flex';
+    }
+
+    // 點擊「我知道了」關閉按鈕
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            if (noticeModal) noticeModal.style.display = 'none';
+
+            // 只有當使用者「勾選了不再提醒」才寫入快取紀錄
+            if (dontShowCheckbox && dontShowCheckbox.checked) {
+                try {
+                    localStorage.setItem('hide_announcement', ANNOUNCEMENT_ID);
+                } catch (e) {
+                    sessionStorage.setItem('hide_announcement', ANNOUNCEMENT_ID);
+                }
+            }
+        });
+    }
+
+    // 點擊背景空白處關閉
+    if (noticeModal) {
+        noticeModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeBtn.click();
+            }
+        });
+    }
+});
+
+</script>
+
+<div style="text-align: center; color: #888888; font-size: 14px;  margin-top: 250px;margin-bottom: 0px;">
+    <p>總次數：<span id="view-count" style="color: #00e676; font-weight: bold;">載入中...</span> 次瀏覽</p>
+</div>
+
+<footer class="site-footer" style="
+    position: relative; 
+    margin-top: 0px; 
+    width: 100%; 
+    text-align: center; 
+    padding: 10px 0 10px 0; 
+    background-color: #111111; 
+    border-top: 1px solid #2a2a2a;
+">
+<p style="margin: 0; font-size: 14px; color: #888888; line-height: 1;">
+        &copy; 2026 
+        <a href="https://line.me/ti/g2/lquJYJWOJudOLkUti7prCFNeSbvKF2vn2AdEYQ?utm_source=invitation&utm_medium=link_copy&utm_campaign=default" 
+           target="_blank" 
+           style="color: #00cd3c; text-decoration: none; font-weight: bold;">
+           i-dle西瓜攤
+        </a> 
+        GigiBoss. All rights reserved. Designed & Maintained by
+        <a href="https://www.threads.com/@fangwh_529?igshid=NTc4MTIwNjQ2YQ=="target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 3px; background-color: #121212; border: 1px solid #262626; border-radius: 16px; text-decoration: none; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 600; margin-left: 6px; vertical-align: middle;">
+    
+    <!-- 圖示黑底圓圈 -->
+    <span style="display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; background-color: #000000; border-radius: 50%; flex-shrink: 0;">
+        <!-- 官方 SVG 圖片檔 -->
+        <img src="https://upload.wikimedia.org/wikipedia/commons/9/9d/Threads_%28app%29_logo.svg" alt="Threads" style="width: 14px; height: 14px; filter: brightness(0) invert(1); display: block;">
+    </span>
+
+    <!-- 帳號名稱 -->
+    <span>GigiBoss</span>
+</a>
+    </p>
+    
+</footer>
+
+<div id="score-modal" class="modal-overlay">
+        <div class="modal-container">
+            <img src="https://i-dle-melon.github.io/vote/icon/SNS音源一覽圖.jpg" alt="計分模式圖解" class="modal-img">
+            <button id="close-score-modal" class="modal-close-btn">✕ 關閉</button>
+        </div>
+    </div>
+
+<div id="for dummies-modal" class="modal-overlay">
+        <div class="modal-container">
+            <img src="https://i-dle-melon.github.io/vote/icon/投票App彙整.jpg" alt="每日任務懶人包" class="modal-img">
+            <button id="close-for dummies-modal" class="modal-close-btn">✕ 關閉</button>
+        </div>
+    </div>
+
+<div id="trade-modal" class="modal-overlay">
+        <div class="modal-container">
+            <img src="https://i-dle-melon.github.io/vote/Music_Bank/Fancast/禁止點trade.jpg" alt="禁止點Trade" class="modal-img">
+            <button id="close-trade-modal" class="modal-close-btn">✕ 關閉</button>
+        </div>
+    </div>
+
+<div id="sheet-modal" class="modal-overlay">
+    <div class="modal-container sheet-container">
+<div class="iframe-wrapper">
+        <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSehR-tbVnw2MN6EF2zEWP7Nq5bFoMyH0dNbG-j9mrx-dzlrw7AZ5W7A6GBlXcW8bKjNASGsm4fWDJ0/pubhtml?gid=0&single=true&widget=false&headers=false&rm=demo&range=A2:F28" class="modal-iframe"></iframe>
+</div>
+        <button id="close-sheet-modal" class="modal-close-btn">✕ 關閉</button>
+    </div>
+</div>
+
+<script>
+
+// 綁定關閉按鈕點擊事件
+document.getElementById('close-score-modal').addEventListener('click', function() {
+    document.getElementById('score-modal').style.display = 'none';
+});
+document.getElementById('close-for dummies-modal').addEventListener('click', function() {
+    document.getElementById('for dummies-modal').style.display = 'none';
+});
+document.getElementById('close-trade-modal').addEventListener('click', function() {
+    document.getElementById('trade-modal').style.display = 'none';
+});
+// 試算表關閉事件
+document.getElementById('close-sheet-modal').addEventListener('click', function() {
+    document.getElementById('sheet-modal').style.display = 'none';
+});
+
+// 點擊背景空白處也能關閉彈窗
+document.getElementById('score-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.style.display = 'none';
+    }
+});
+document.getElementById('for dummies-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.style.display = 'none';
+    }
+});
+document.getElementById('trade-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.style.display = 'none';
+    }
+});
+// 試算表點擊背景關閉事件
+document.getElementById('sheet-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.style.display = 'none';
+    }
+});
+
+// 自動動態計算試算表縮放比例的函式
+    function autoScaleSheet() {
+        const wrapper = document.getElementById('sheet-wrapper');
+        const iframe = document.getElementById('sheet-iframe');
+        if (!wrapper || !iframe) return;
+
+        const containerWidth = wrapper.clientWidth;
+        const containerHeight = wrapper.clientHeight;
+
+        const baseWidth = 650;
+        const baseHeight = 900;
+
+        const scaleX = containerWidth / baseWidth;
+        const scaleY = containerHeight / baseHeight;
+        const fitScale = Math.min(scaleX, scaleY);
+
+        iframe.style.setProperty('--scale', fitScale);
+    }
+
+    // 視窗大小改變時自動重新計算
+    window.addEventListener('resize', autoScaleSheet);
+
+    // 監聽彈窗打開：只要 #sheet-modal 變成顯示狀態就自動計算一次
+    const sheetModal = document.getElementById('sheet-modal');
+    if (sheetModal) {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.attributeName === 'style' && sheetModal.style.display !== 'none') {
+                    setTimeout(autoScaleSheet, 50);
+                }
+            });
+        });
+        observer.observe(sheetModal, { attributes: true });
+    }
+
+
+// 觸發彈窗顯示的函式（可綁定在任何頁面的按鈕上）
+        function openScoreModal() {
+            document.getElementById('score-modal').style.display = 'flex';
+        }
+
+  // 替換成你部署後的 Cloudflare Workers 網址
+  const workerUrl = 'https://wispy-wind-f5df.i-dle-melon.workers.dev/?page=idle_vote'; 
+    
+// 檢查這一個分頁是否已經算過瀏覽量
+if (!sessionStorage.getItem('has_voted')) {
+  // 1. 如果是第一次進來，呼叫 API（這會讓 KV 資料庫 +1）
+  fetch(workerUrl)
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('view-count').innerText = data.views;
+      // 標記這個分頁已經算過次數了
+      sessionStorage.setItem('has_voted', 'true');
+      // 把當前的數字也存起來，方便重整時使用
+      sessionStorage.setItem('current_views', data.views);
+    })
+    .catch(error => {
+      console.error('計數器載入失敗:', error);
+      document.getElementById('view-count').innerText = '0';
+    });
+} else {
+  // 2. 如果是重新整理（已經有標記了），就直接抓最新數字，但不讓資料庫 +1
+  // 提示：為了不讓資料庫增加，我們可以另外在 Worker 寫一個不加次數的邏輯，
+  // 或者是直接顯示剛剛存下來的數字：
+  const savedViews = sessionStorage.getItem('current_views');
+  document.getElementById('view-count').innerText = savedViews ? savedViews : '---';
+}
+
+
+
+// 1. openApp 直接帶入清單中的 Key 名稱
+window.openApp = function(appName) {
+    const app = appConfig[appName];
+    if (!app) {
+        alert("找不到對應的 APP 設定！");
+        return;
+    }
+
+    const userAgent = navigator.userAgent || navigator.vendor;
+    const isAndroid = /android/i.test(userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+
+    // 💻 電腦版處理
+    if (!isAndroid && !isIOS) {
+        if (app.web) {
+            window.location.href = app.web;
+        } else if (app.android) {
+            window.location.href = app.android;
+        } else {
+            alert("請使用手機點擊，或至應用商店搜尋該 App");
+        }
+        return;
+    }
+
+    // 📱 手機版處理
+    const now = Date.now();
+    window.location.href = app.scheme;
+
+    setTimeout(() => {
+        if (document.hidden || document.webkitHidden || Date.now() - now > 2500) return;
+        if (isAndroid && app.android) window.location.href = app.android;
+        if (isIOS && app.ios) window.location.href = app.ios;
+}, 2000);
+};
+
+// 2. 在 JS 內建立所有 APP 的資料清單
+const appConfig = {
+    // 1.coogoong 首頁
+    fancast: {
+        scheme: "https://open.fanca.io",
+        android: "https://play.google.com/store/apps/details?id=com.contentsmadang.fancast",
+        ios: "https://apps.apple.com/app/id1641638840"
+    },
+    // coogoong_EP1299
+    fancast_EP1299: {
+        scheme: "fancast://open.fanca.io?target=event%2Fdetail%3Fkey_event%3D753",
+        android: "https://play.google.com/store/apps/details?id=com.contentsmadang.fancast",
+        ios: "https://apps.apple.com/app/id1641638840"
+    },
+    // 2. LiNC
+    linc: {
+        scheme: "https://app.linc.fan/31TL",
+        android: "https://play.google.com/store/apps/details?id=io.stayge.youmeonapp",
+        ios: "https://apps.apple.com/tw/app/linc-%EB%A7%81%ED%81%AC/id6467824343"
+    },
+    // 3. tin
+    tin: {
+        scheme: "https://app.tin.cards/7Yoh",
+        android: "https://play.google.com/store/apps/details?id=io.stayge.tin",
+        ios: "https://apps.apple.com/tw/app/tin-kpop-photocards/id6446240203"
+    },
+    // 4. Higher
+    higher: {
+        scheme: "https://higher.fan/app/hotstage/",
+        android: "https://play.google.com/store/apps/details?id=com.dalcomsoft.mysu.a&pcampaignid=web_share",
+        ios: "https://apps.apple.com/tw/app/higher-%ED%95%98%EC%9D%B4%EC%96%B4/id1672001935"
+    },
+    // 5. Mubeat
+    mubeat: {
+        scheme: "https://mubeat.applink.info/FKUI1JlOBG",
+        android: "https://play.google.com/store/apps/details?id=com.vlending.apps.mubeat",
+        ios: "https://apps.apple.com/tw/app/mubeat-for-kpop-lovers/id1320789688"
+    },
+    // 6. Muniverse
+    muniverse: {
+        scheme: "https://www.muniverse.io/",
+        android: "https://play.google.com/store/apps/details?id=com.tnk.muniverse",
+        ios: "https://apps.apple.com/tw/app/muniverse/id6749677921"
+    },
+    // 7. IDOL CHAMP
+    idolchamp: {
+        scheme: "https://promo-web.idolchamp.com/app_proxy.html",
+        android: "https://play.google.com/store/apps/details?id=com.nwz.ichampclient",
+        ios: "https://apps.apple.com/tw/app/idolchamp/id1185735018"
+    },
+    // 8. Mnet Plus
+    mnetplus: {
+        scheme: "https://mnetplus.onelink.me/TRa8/",
+        android: "https://play.google.com/store/apps/details?id=world.mnetplus",
+        ios: "https://apps.apple.com/tw/app/mnet-plus/id6443405421"
+    },
+    // 9. Kakao
+    kakao: {
+        scheme: "https://accounts.kakao.com/weblogin/create_account#selectVerifyMethod",
+        web: "https://accounts.kakao.com/weblogin/create_account#selectVerifyMethod",
+        android: "https://accounts.kakao.com/weblogin/create_account#selectVerifyMethod",
+        ios: "https://accounts.kakao.com/weblogin/create_account#selectVerifyMethod"
+    },
+    // 10. Tiktok
+    tiktok: {
+        scheme: "https://www.tiktok.com/upload?lang=zh",
+        web: "https://www.tiktok.com/upload?lang=zh",
+        android: "https://www.tiktok.com/upload?lang=zh",
+        ios: "https://www.tiktok.com/upload?lang=zh"
+    },
+    // 11. Melon Like
+     melonlike: {
+        scheme: "https://m2.melon.com/artist/detail.htm?artistId=2137482",
+        web: "https://m2.melon.com/artist/detail.htm?artistId=2137482",
+        android: "https://m2.melon.com/artist/detail.htm?artistId=2137482",
+        ios: "https://m2.melon.com/artist/detail.htm?artistId=2137482"
+    }
+};
+
+
+</script>
+
+
+</body>
+</html>
