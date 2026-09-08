@@ -1213,6 +1213,36 @@ html {
     margin-top: 6px;      /* 與上方公告保持微小間隔 */
 }
 
+.announcement-history {
+    margin-top: 14px;
+    text-align: left;
+}
+
+.announcement-history-toggle {
+    display: inline-block;
+    color: #00cd3c;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    user-select: none;
+}
+
+.announcement-history-content {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    color: #999999;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: normal;
+}
+
+.announcement-history-content:empty {
+    display: none;
+}
+}
+
 /* 我知道了 / 關閉按鈕 */
 .notice-close-btn {
     background: #1e1e1e;
@@ -3313,6 +3343,11 @@ style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px; text-d
         <div class="notice-body">
             <div id="announcement-main"></div>
             <div id="announcement-updates" class="update-version"></div>
+
+            <details id="announcement-history" class="announcement-history">
+                <summary class="announcement-history-toggle">查看歷次改版</summary>
+                <div id="announcement-history-content" class="announcement-history-content"></div>
+            </details>
         </div>
 
         <div class="notice-footer">
@@ -3912,6 +3947,7 @@ let publishedAnnouncement = {
     announcement_main: '',
     announcement_updates: '',
     announcement_version: '',
+    announcement_history: '',
     page_announcement: ''
 };
 
@@ -3963,6 +3999,9 @@ async function loadPublishedAnnouncement() {
                     announcement_version:
                         data.announcement_version || '',
 
+                    announcement_history:
+                        data.announcement_history || '',
+
                     page_announcement:
                         data.page_announcement || ''
                 };
@@ -3982,6 +4021,7 @@ function renderPublishedAnnouncement() {
     const title = document.getElementById('announcement-title');
     const main = document.getElementById('announcement-main');
     const updates = document.getElementById('announcement-updates');
+    const history = document.getElementById('announcement-history-content');
 
     if (title) {
         title.innerHTML =
@@ -3996,6 +4036,11 @@ function renderPublishedAnnouncement() {
     if (updates) {
         updates.innerHTML =
             publishedAnnouncement.announcement_updates || '';
+    }
+
+    if (history) {
+        history.innerHTML =
+            publishedAnnouncement.announcement_history || '';
     }
 }
 
