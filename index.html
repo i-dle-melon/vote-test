@@ -3646,6 +3646,7 @@ function updateCalendarEventBadge() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // 「30天內」＝包含今天在內的 30 個日曆日
     const endDate = new Date(today);
     endDate.setDate(endDate.getDate() + 29);
 
@@ -3662,11 +3663,16 @@ function updateCalendarEventBadge() {
         );
         eventDate.setHours(0, 0, 0, 0);
 
+        // 只計算今天～未來第29天之間的事件
         if (eventDate >= today && eventDate <= endDate) {
             const eventList = Array.isArray(events[dateKey])
                 ? events[dateKey]
-                : (events[dateKey].items || [events[dateKey]]);
+                : (events[dateKey] && Array.isArray(events[dateKey].items)
+                    ? events[dateKey].items
+                    : (events[dateKey] ? [events[dateKey]] : []));
 
+            // 這裡計算的是「事件筆數」，不是「有事件的天數」
+            // 同一天有 3 筆事件，就會 +3。
             count += eventList.length;
         }
     });
