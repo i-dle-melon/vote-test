@@ -407,6 +407,29 @@ html {
     transition: opacity 0.2s, transform 0.2s; /* 動畫過渡：透明度和縮放效果在 0.2 秒內平滑變化 */
 }
 
+/* 行事曆通知數量徽章：顯示今天起 30 天內的事件數 */
+.calendar-fab-badge {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    background: #ff3b30;
+    color: #fff;
+    border: 2px solid #121212;
+    font-size: 10px;
+    font-weight: bold;
+    line-height: 14px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+
 
 
 /* 滑鼠移上去時的效果 */
@@ -3235,12 +3258,14 @@ style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px; text-d
             </div>
             <div class="info-row">
                 <div class="info-label-vote">#<br>限制</div>
-                <div>Hashtag最多只能帶5個，回歸後會依官方修改:<br><span style="color: #ff3b30;">
-請點上方↑ 👉引用#一鍵複製</span></div>
+                <div>Hashtag最多只能帶5個，回歸後可能會依官方小改:<br><span style="color: #ff3b30;">
+#아이들 #idle
+#소연 #SOYEON
+#퇴사할게여</span></div>
             </div>
             <div class="info-row">
                 <div class="info-label-vote">提醒</div>
-                <div><span style="color: #ff3b30;">※</span>官方音源上架後，以防大家引用錯，會在 👉引用#一鍵複製 提供給大家。</div>
+                <div><span style="color: #ff3b30;">※</span>官方音源上架後，以防大家引用錯，會再截圖給大家。</div>
 
         </div>
                     </div> </div>  
@@ -3294,7 +3319,9 @@ style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px; text-d
                                 <div class="image-wrapper">
                             <span class="step-badge">引用步驟 8</span>
 </步驟後面可以新增文字，可備註>
-        <span style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px;">複製範本回最上面點:<br> 👉引用#一鍵複製</span>  
+        <span style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px;">複製範本:<br>#아이들 #idle
+#소연 #SOYEON
+#퇴사할게여 </span>  
 
 
                         <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/引用8.jpg" alt="沒有圖片請重整頁面稍等載入">
@@ -3396,7 +3423,7 @@ style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px; text-d
 <div class="task-fab" onclick="document.getElementById('sheet-modal').style.display='flex'">📋
 </div>
 
-<div class="calendar-fab"  onclick="openCalendar()">📅
+<div class="calendar-fab"  onclick="openCalendar()">📅<span id="calendar-event-badge" class="calendar-fab-badge"></span>
 </div>
 
 
@@ -3610,6 +3637,49 @@ function forceRefreshEvents() {
     fetchEventsFromSheet(true);
 }
 
+// 計算今天起 30 天內的行事曆事件數量。
+// 直接沿用現有 processSheetData() 產生的 events，不另外抓試算表。
+function updateCalendarEventBadge() {
+    const badge = document.getElementById('calendar-event-badge');
+    if (!badge) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(today);
+    endDate.setDate(endDate.getDate() + 29);
+
+    let count = 0;
+
+    Object.keys(events).forEach(dateKey => {
+        const parts = dateKey.split('/');
+        if (parts.length !== 3) return;
+
+        const eventDate = new Date(
+            Number(parts[0]),
+            Number(parts[1]) - 1,
+            Number(parts[2])
+        );
+        eventDate.setHours(0, 0, 0, 0);
+
+        if (eventDate >= today && eventDate <= endDate) {
+            const eventList = Array.isArray(events[dateKey])
+                ? events[dateKey]
+                : (events[dateKey].items || [events[dateKey]]);
+
+            count += eventList.length;
+        }
+    });
+
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : String(count);
+        badge.style.display = 'flex';
+    } else {
+        badge.textContent = '';
+        badge.style.display = 'none';
+    }
+}
+
 // 抓取試算表 CSV 資料
 async function fetchEventsFromSheet(isForce = false) {
     try {
@@ -3638,6 +3708,7 @@ async function fetchEventsFromSheet(isForce = false) {
                 events = processSheetData(results.data);
                 console.log('2. 轉換後的 events 物件：', events);
                 renderCalendar();
+                updateCalendarEventBadge();
                 
                 if (isForce) {
                     alert('資料已成功更新！');
