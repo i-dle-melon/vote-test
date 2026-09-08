@@ -724,6 +724,75 @@ html {
 }
 
 /* 關閉按鈕：緊貼底部 */
+/* Tiktok「引用網頁」複製範本彈窗：僅供該按鈕使用 */
+.tiktok-template-modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.tiktok-template-box {
+    width: min(92vw, 430px);
+    background: #1e1e1e;
+    border: 1px solid #00cd3c;
+    border-radius: 12px;
+    padding: 18px;
+    box-sizing: border-box;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+}
+
+.tiktok-template-title {
+    margin: 0 0 12px;
+    color: #00cd3c;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.tiktok-template-text {
+    background: #121212;
+    border-radius: 8px;
+    padding: 14px;
+    color: #ccc;
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.tiktok-template-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.tiktok-template-copy-btn,
+.tiktok-template-close-btn {
+    border-radius: 20px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.tiktok-template-copy-btn {
+    background: #00cd3c;
+    color: #121212;
+    border: 1px solid #00cd3c;
+    font-weight: bold;
+}
+
+.tiktok-template-close-btn {
+    background: #1e1e1e;
+    color: #ccc;
+    border: 1px solid #555;
+}
+
 #sheet-modal .modal-close-btn {
     flex-shrink: 0;
     padding: 6px 20px;       /* 微調按鈕上下內邊距 */
@@ -3151,7 +3220,7 @@ style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px; text-d
                         <span class="tag tag-btn" onclick="document.getElementById('Tiktok-tickets').scrollIntoView({ behavior: 'smooth' })">#註冊教學👈</span>
                         <span class="tag tag-btn" onclick="document.getElementById('Tiktok-vote').scrollIntoView({ behavior: 'smooth' })">#引用教學👈</span>
  
-<button class="pay-btn" onclick="openApp('tiktok')"style="cursor: pointer;">👉#引用網頁</button>
+<button class="pay-btn" onclick="openTiktokTemplateModal()" style="cursor: pointer;">👉引用#一鍵複製</button>
  
                         <span class="tag tag-btn" onclick="document.getElementById('Tiktok-vote1-expired').scrollIntoView({ behavior: 'smooth' })">#規則&註冊限制  👇</span>
 
@@ -3348,6 +3417,8 @@ style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px; text-d
                 <div id="announcement-history-content" class="announcement-history-content"></div>
             </details>
         </div>
+
+
 <!-- 新增：底部操作區（包含勾選框與關閉按鈕） -->
         <div class="notice-footer">
             <label class="dont-show-label">
@@ -3492,6 +3563,9 @@ const SPREADSHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQr
 
 // 公告只讀「已發布公告」分頁（GID 2067200108）
 const ANNOUNCEMENT_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQrrQmNaPZEiutOwd0S5B8vY_HLa8EMXQC9eH6gtSlcK6ClfQIW4djWdmYZ0Ru7cQN7Xt0Aq6wlKy7j/pub?gid=2067200108&single=true&output=csv';
+
+// TikTok 引用範本只讀「已發布Tiktok引用範本」分頁
+const TIKTOK_TEMPLATE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQrrQmNaPZEiutOwd0S5B8vY_HLa8EMXQC9eH6gtSlcK6ClfQIW4djWdmYZ0Ru7cQN7Xt0Aq6wlKy7j/pub?gid=518779602&single=true&output=csv';
 let events = {};
 let currentDate = new Date(); // 記錄當前顯示的日期 (預設為今天)
 
@@ -4106,6 +4180,7 @@ function checkPublishedAnnouncement() {
 
 document.addEventListener('DOMContentLoaded', function() {
     loadPublishedAnnouncement();
+    loadTiktokTemplate();
 });
 
 </script>
@@ -4286,6 +4361,113 @@ if (!sessionStorage.getItem('has_voted')) {
 
 
 
+// Tiktok「引用網頁」複製範本彈窗
+function openTiktokTemplateModal() {
+    const modal = document.getElementById('tiktok-template-modal');
+    if (modal) modal.style.display = 'flex';
+}
+
+// 讀取「已發布Tiktok引用範本」
+async function loadTiktokTemplate() {
+    try {
+        const url = TIKTOK_TEMPLATE_CSV_URL + '&_t=' + Date.now();
+
+        const response = await fetch(url, {
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            throw new Error('TikTok範本資料讀取失敗：HTTP ' + response.status);
+        }
+
+        const csvText = await response.text();
+
+        if (typeof Papa === 'undefined') {
+            throw new Error('找不到 PapaParse。');
+        }
+
+        Papa.parse(csvText, {
+            header: false,
+            skipEmptyLines: true,
+            complete: function(results) {
+                let templateText = '';
+
+                results.data.forEach(function(row) {
+                    if (!row || row.length < 3) return;
+
+                    // B欄 = key，C欄 = value
+                    const key = String(row[1] || '').trim();
+                    const value = String(row[2] || '');
+
+                    if (key === 'tiktok_copy_template') {
+                        templateText = value;
+                    }
+                });
+
+                const element =
+                    document.getElementById('tiktok-template-text');
+
+                if (element) {
+                    element.textContent =
+                        templateText || '目前沒有已發布的範本。';
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error(
+            '❌ 無法讀取已發布TikTok引用範本：',
+            error
+        );
+    }
+}
+
+function closeTiktokTemplateModal() {
+    const modal = document.getElementById('tiktok-template-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function closeTiktokTemplateOnOverlay(event) {
+    if (event.target.id === 'tiktok-template-modal') {
+        closeTiktokTemplateModal();
+    }
+}
+
+function copyTiktokTemplate() {
+    const text = document.getElementById('tiktok-template-text').innerText;
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text)
+            .then(function() {
+                alert('✅ 已複製範本');
+            })
+            .catch(function() {
+                fallbackCopyTiktokTemplate(text);
+            });
+    } else {
+        fallbackCopyTiktokTemplate(text);
+    }
+}
+
+function fallbackCopyTiktokTemplate(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    try {
+        document.execCommand('copy');
+        alert('✅ 已複製範本');
+    } catch (error) {
+        alert('❌ 複製失敗，請長按文字手動複製');
+    }
+
+    document.body.removeChild(textarea);
+}
+
 // 1. openApp 直接帶入清單中的 Key 名稱
 window.openApp = function(appName) {
     const app = appConfig[appName];
@@ -4404,5 +4586,17 @@ const appConfig = {
 </script>
 
 
+
+<!-- Tiktok 引用網頁：複製範本彈窗 -->
+<div id="tiktok-template-modal" class="tiktok-template-modal" onclick="closeTiktokTemplateOnOverlay(event)">
+    <div class="tiktok-template-box">
+        <h3 class="tiktok-template-title">複製範本</h3>
+        <div id="tiktok-template-text" class="tiktok-template-text">載入中...</div>
+        <div class="tiktok-template-actions">
+            <button type="button" class="tiktok-template-close-btn" onclick="closeTiktokTemplateModal()">關閉</button>
+            <button type="button" class="tiktok-template-copy-btn" onclick="copyTiktokTemplate()">📋 一鍵複製</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
