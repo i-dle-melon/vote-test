@@ -3604,7 +3604,10 @@ function openCalendar() {
     }
     const modal = document.getElementById('calendarModal');
     if (modal) modal.style.display = 'flex';
-    fetchEventsFromSheet(); // 開啟時確保抓取並更新資料
+
+    // ⚠️ 不在每次開啟日曆時重新抓取資料。
+    // 避免「頁面初次載入的請求」與「開啟日曆的請求」同時進行，
+    // 導致較新的資料先顯示，幾秒後又被較舊的 CSV 回應覆蓋。
 }
 
 // 關閉行事曆彈窗
@@ -3687,20 +3690,37 @@ function updateCalendarEventBadge() {
 }
 
 // 抓取試算表 CSV 資料
+
+// 記錄目前最新的一次抓取請求。
+// 若前一次請求尚未完成就再次刷新，舊請求即使晚回來，
+// 也不可以把較新的資料覆蓋掉。
+let eventsFetchRequestId = 0;
+let eventsFetchController = null;
+
 async function fetchEventsFromSheet(isForce = false) {
+    const requestId = ++eventsFetchRequestId;
+
+    // 新請求開始時取消前一個尚未完成的請求。
+    if (eventsFetchController) {
+        eventsFetchController.abort();
+    }
+    eventsFetchController = new AbortController();
+
     try {
         let url = SPREADSHEET_CSV_URL;
-        let fetchOptions = {};
+        let fetchOptions = {
+            cache: 'no-store',
+            signal: eventsFetchController.signal
+        };
 
-// 當傳入 isForce = true 時（點擊 刷新 按鈕），才會觸發下面這段
-            if (isForce) {
-            url += '&_t=' + Date.now();           // 加上當下的時間戳記
-            fetchOptions = { cache: 'no-store' }; // 強制瀏覽器不使用快取
+        // 手動按「刷新」仍然加入時間戳，避免使用舊快取。
+        if (isForce) {
+            url += '&_t=' + Date.now();
         }
 
         const response = await fetch(url, fetchOptions);
         const csvText = await response.text();
-        
+
         if (typeof Papa === 'undefined') {
             console.error('PapaParse 套件未成功載入，請檢查 head 區塊的 script 標籤！');
             return;
@@ -3710,18 +3730,30 @@ async function fetchEventsFromSheet(isForce = false) {
             header: false,
             skipEmptyLines: true,
             complete: function(results) {
+                // 只允許目前最新的請求寫入 events。
+                // 舊請求若因網路延遲才回來，直接忽略。
+                if (requestId !== eventsFetchRequestId) {
+                    console.warn('⚠️ 忽略較舊的行事曆資料請求');
+                    return;
+                }
+
                 console.log('1. CSV 原始解析結果：', results.data);
                 events = processSheetData(results.data);
                 console.log('2. 轉換後的 events 物件：', events);
                 renderCalendar();
                 updateCalendarEventBadge();
-                
+
                 if (isForce) {
                     alert('資料已成功更新！');
                 }
             }
         });
     } catch (error) {
+        // 前一次請求被新請求取消是正常情況，不需要報錯。
+        if (error && error.name === 'AbortError') {
+            return;
+        }
+
         console.error('抓取試算表失敗：', error);
     }
 }
