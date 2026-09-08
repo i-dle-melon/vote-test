@@ -1241,7 +1241,6 @@ html {
 .announcement-history-content:empty {
     display: none;
 }
-}
 
 /* 我知道了 / 關閉按鈕 */
 .notice-close-btn {
@@ -3349,17 +3348,13 @@ style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px; text-d
                 <div id="announcement-history-content" class="announcement-history-content"></div>
             </details>
         </div>
-
+<!-- 新增：底部操作區（包含勾選框與關閉按鈕） -->
         <div class="notice-footer">
             <label class="dont-show-label">
                 <input type="checkbox" id="dont-show-today">
                 不再提醒
             </label>
-
-            <button id="close-notice-btn" class="notice-close-btn">
-                我知道了
-            </button>
-        </div>
+        <button id="close-notice-btn" class="notice-close-btn">我知道了</button>
     </div>
 </div>
 </div>
@@ -3926,7 +3921,7 @@ const GALLERY_DATA = {
 });
 
 
-// 💡 每次更新公告內容時，修改此版本號即可讓所有人重新收到一次公告
+// 💡 公告只讀「已發布公告」分頁；版本號由試算表控制發布
 
 /*************************************************
  * 公告系統
