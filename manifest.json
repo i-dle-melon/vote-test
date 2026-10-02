@@ -3,7 +3,7 @@
   "short_name": "i-dle-vote",
   "description": "i-dle* 追榜打歌與投票應援指南",
   "lang": "zh-TW",
-  "start_url": "./VoteTest.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#121212",
