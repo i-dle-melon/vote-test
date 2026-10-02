@@ -3645,6 +3645,10 @@ const TIKTOK_TEMPLATE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-
 let events = {};
 let currentDate = new Date(); // 記錄當前顯示的日期 (預設為今天)
 
+// 行事曆資料載入狀態：避免頁面剛開啟時點擊行事曆而看到空白
+let eventsReady = false;
+let eventsLoading = false;
+
 // 頁面載入完成後自動抓取資料
 document.addEventListener('DOMContentLoaded', () => {
     fetchEventsFromSheet();
@@ -3652,18 +3656,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 開啟行事曆彈窗
 function openCalendar() {
-    if (typeof renderCalendar === 'function') {
-        renderCalendar(); // ⭕ 關鍵：點擊開啟時立刻渲染日曆格子與日期
-    }
     const modal = document.getElementById('calendarModal');
     if (modal) modal.style.display = 'flex';
 
-    // ⚠️ 不在每次開啟日曆時重新抓取資料。
-    // 避免「頁面初次載入的請求」與「開啟日曆的請求」同時進行，
-    // 導致較新的資料先顯示，幾秒後又被較舊的 CSV 回應覆蓋。
+    // 如果 Google Sheet 尚未載入完成，不要直接把空資料當成「沒有行程」
+    if (!eventsReady) {
+        const daysContainer = document.getElementById('calendar-days');
+
+        if (daysContainer) {
+            daysContainer.innerHTML =
+                '<div style="grid-column:1 / -1; padding:30px 10px; text-align:center; color:#888;">📅 行事曆資料載入中…</div>';
+        }
+
+        // 避免重複發出相同的第一次請求
+        if (!eventsLoading) {
+            fetchEventsFromSheet();
+        }
+
+        return;
+    }
+
+    if (typeof renderCalendar === 'function') {
+        renderCalendar();
+    }
 }
 
 // 關閉行事曆彈窗
+
 function closeCalendar() {
     const modal = document.getElementById('calendarModal');
     if (modal) modal.style.display = 'none';
@@ -3752,6 +3771,7 @@ let eventsFetchController = null;
 
 async function fetchEventsFromSheet(isForce = false) {
     const requestId = ++eventsFetchRequestId;
+    eventsLoading = true;
 
     // 新請求開始時取消前一個尚未完成的請求。
     if (eventsFetchController) {
@@ -3807,7 +3827,14 @@ async function fetchEventsFromSheet(isForce = false) {
             return;
         }
 
+        eventsLoading = false;
         console.error('抓取試算表失敗：', error);
+
+        const daysContainer = document.getElementById('calendar-days');
+        if (daysContainer && !eventsReady) {
+            daysContainer.innerHTML =
+                '<div style="grid-column:1 / -1; padding:30px 10px; text-align:center; color:#888;">⚠️ 行事曆資料載入失敗，請稍後再試</div>';
+        }
     }
 }
 
@@ -4169,6 +4196,8 @@ const GALLERY_DATA = {
  * 已發布公告才會更新，前端才會同步新內容。
  *************************************************/
 
+let announcementReady = false;
+
 let publishedAnnouncement = {
     announcement_title: '📢 最新公告',
     announcement_main: '',
@@ -4233,6 +4262,8 @@ async function loadPublishedAnnouncement() {
                         data.page_announcement || ''
                 };
 
+                announcementReady = true;
+
                 renderPublishedAnnouncement();
                 renderPageAnnouncement();
                 checkPublishedAnnouncement();
@@ -4240,6 +4271,16 @@ async function loadPublishedAnnouncement() {
         });
 
     } catch (error) {
+        announcementReady = false;
+
+        const pageAnnouncement =
+            document.getElementById('page-announcement');
+
+        if (pageAnnouncement) {
+            pageAnnouncement.textContent =
+                '⚠️ 公告資料載入失敗，請稍後再試。';
+        }
+
         console.error('❌ 無法讀取已發布公告：', error);
     }
 }
@@ -4275,6 +4316,11 @@ function renderPageAnnouncement() {
     const element = document.getElementById('page-announcement');
 
     if (!element) return;
+
+    if (!announcementReady) {
+        element.textContent = '📢 公告載入中…';
+        return;
+    }
 
     element.innerHTML =
         publishedAnnouncement.page_announcement || '';
