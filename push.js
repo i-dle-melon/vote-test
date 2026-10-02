@@ -1,18 +1,3 @@
-i-dle-vote Push 加速正式版
-==========================
-
-以下內容為已確認過的 push.js 完整版本。
-確認項目：
-- Worker URL: OK
-- 已移除 10 秒 timeout: OK
-- Service Worker 預熱: OK
-- VAPID 預熱: OK
-- SW/VAPID 並行: OK
-- Push subscribe 保留: OK
-- Cloudflare subscribe 保留: OK
-- unsubscribe 保留: OK
-- 按鈕狀態保留: OK
-
 const PUSH_WORKER_URL = 'https://i-dle-vote-push.i-dle-melon.workers.dev';
 
 function pushUrl(path) {
