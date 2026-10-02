@@ -4520,9 +4520,34 @@ if (!sessionStorage.getItem('has_voted')) {
 
 
 // Tiktok「引用網頁」複製範本彈窗
+// 避免使用者在 Google Sheet 資料尚未載入完成時點擊複製，
+// 導致複製到「載入中...」或空白內容。
+let tiktokTemplateReady = false;
+
+function updateTiktokCopyButtonState() {
+    const copyButton = document.querySelector(
+        '#tiktok-template-modal .tiktok-template-copy-btn'
+    );
+
+    if (!copyButton) return;
+
+    copyButton.disabled = !tiktokTemplateReady;
+    copyButton.style.opacity = tiktokTemplateReady ? '' : '0.5';
+    copyButton.style.cursor = tiktokTemplateReady ? 'pointer' : 'not-allowed';
+}
+
 function openTiktokTemplateModal() {
     const modal = document.getElementById('tiktok-template-modal');
+    const element = document.getElementById('tiktok-template-text');
+
     if (modal) modal.style.display = 'flex';
+
+    // 資料尚未完成時，明確告知使用者，而不是顯示空白。
+    if (!tiktokTemplateReady && element) {
+        element.textContent = '範本載入中，請稍候…';
+    }
+
+    updateTiktokCopyButtonState();
 }
 
 // 讀取「已發布Tiktok引用範本」
@@ -4569,6 +4594,10 @@ async function loadTiktokTemplate() {
                     element.textContent =
                         templateText || '目前沒有已發布的範本。';
                 }
+
+                // PapaParse 已完成，無論有沒有發布內容，都代表這次資料載入已完成。
+                tiktokTemplateReady = true;
+                updateTiktokCopyButtonState();
             }
         });
 
@@ -4577,6 +4606,15 @@ async function loadTiktokTemplate() {
             '❌ 無法讀取已發布TikTok引用範本：',
             error
         );
+
+        const element = document.getElementById('tiktok-template-text');
+        if (element) {
+            element.textContent = '範本載入失敗，請稍後再試。';
+        }
+
+        // 載入失敗時保持禁止複製，避免把錯誤訊息當成範本複製出去。
+        tiktokTemplateReady = false;
+        updateTiktokCopyButtonState();
     }
 }
 
@@ -4592,7 +4630,22 @@ function closeTiktokTemplateOnOverlay(event) {
 }
 
 function copyTiktokTemplate() {
-    const text = document.getElementById('tiktok-template-text').innerText;
+    // 防止使用者在資料尚未完成時快速點擊複製。
+    if (!tiktokTemplateReady) {
+        alert('⏳ 範本尚未載入完成，請稍候再試。');
+        return;
+    }
+
+    const element = document.getElementById('tiktok-template-text');
+    if (!element) return;
+
+    const text = element.innerText.trim();
+
+    // 沒有實際範本內容時也不允許複製提示文字。
+    if (!text || text === '目前沒有已發布的範本。') {
+        alert('目前沒有可複製的範本。');
+        return;
+    }
 
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text)
