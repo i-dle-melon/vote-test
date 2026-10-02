@@ -4,7 +4,7 @@
  * IMPORTANT:
  * Set PUSH_WORKER_URL to your deployed push Worker URL.
  */
-const PUSH_WORKER_URL = 'https://YOUR-PUSH-WORKER.workers.dev';
+const PUSH_WORKER_URL = 'https://i-dle-vote-push.i-dle-melon.workers.dev';
 
 function pushUrl(path) {
     return PUSH_WORKER_URL.replace(/\/+$/, '') + path;
