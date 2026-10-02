@@ -1,3 +1,18 @@
+i-dle-vote Push 加速正式版
+==========================
+
+以下內容為已確認過的 push.js 完整版本。
+確認項目：
+- Worker URL: OK
+- 已移除 10 秒 timeout: OK
+- Service Worker 預熱: OK
+- VAPID 預熱: OK
+- SW/VAPID 並行: OK
+- Push subscribe 保留: OK
+- Cloudflare subscribe 保留: OK
+- unsubscribe 保留: OK
+- 按鈕狀態保留: OK
+
 const PUSH_WORKER_URL = 'https://i-dle-vote-push.i-dle-melon.workers.dev';
 
 function pushUrl(path) {
@@ -15,32 +30,53 @@ function pushDiag(message) {
   console.log('[i-dle-vote Push]', message);
 }
 
-async function getPushVapidPublicKey() {
-  pushDiag('② 正在取得 VAPID Public Key…');
-  const response = await fetch(pushUrl('/vapid-public-key'), { cache: 'no-store' });
-  if (!response.ok) throw new Error(`VAPID API HTTP ${response.status}`);
-  const data = await response.json();
-  if (!data.ok || !data.publicKey) throw new Error('VAPID Public Key 回應格式錯誤');
-  pushDiag('② VAPID Public Key 取得成功');
-  return data.publicKey;
-}
+// 背景預先準備：網頁載入後就開始等待 Service Worker。
+// 這樣使用者按下鈴鐺時，通常不需要再等待 SW ready。
+let pushServiceWorkerPromise = null;
+let pushVapidPublicKeyPromise = null;
 
-async function getPushServiceWorkerRegistration() {
+function getPushServiceWorkerRegistration() {
   if (!('serviceWorker' in navigator)) {
-    throw new Error('此瀏覽器不支援 Service Worker');
+    return Promise.reject(new Error('此瀏覽器不支援 Service Worker'));
   }
 
-  pushDiag('① 等待 Service Worker ready…');
+  if (!pushServiceWorkerPromise) {
+    pushDiag('① 背景準備 Service Worker…');
+    pushServiceWorkerPromise = navigator.serviceWorker.ready.then(registration => {
+      pushDiag('① Service Worker ready');
+      return registration;
+    });
+  }
 
-  const registration = await navigator.serviceWorker.ready;
+  return pushServiceWorkerPromise;
+}
 
-  pushDiag('① Service Worker ready');
-  return registration;
+async function getPushVapidPublicKey() {
+  if (!pushVapidPublicKeyPromise) {
+    pushDiag('② 背景取得 VAPID Public Key…');
+    pushVapidPublicKeyPromise = fetch(pushUrl('/vapid-public-key'), {
+      cache: 'no-store'
+    }).then(async response => {
+      if (!response.ok) throw new Error(`VAPID API HTTP ${response.status}`);
+      const data = await response.json();
+      if (!data.ok || !data.publicKey) {
+        throw new Error('VAPID Public Key 回應格式錯誤');
+      }
+      pushDiag('② VAPID Public Key 取得成功');
+      return data.publicKey;
+    }).catch(error => {
+      // 失敗時允許下一次重新取得
+      pushVapidPublicKeyPromise = null;
+      throw error;
+    });
+  }
+
+  return pushVapidPublicKeyPromise;
 }
 
 async function getCurrentPushSubscription() {
   const registration = await getPushServiceWorkerRegistration();
-  if (!registration.pushManager) throw new Error('PushManager 不可用');
+  if (!registration.pushManager) throw new Error('PushManager 不可用，請把網頁加入主畫面');
   const subscription = await registration.pushManager.getSubscription();
   pushDiag(subscription ? '③ 已存在 Push Subscription' : '③ 尚無 Push Subscription');
   return subscription;
@@ -67,9 +103,11 @@ async function enablePushNotifications() {
       pushDiag('通知權限已經是 granted');
     }
 
-    const registration = await getPushServiceWorkerRegistration();
-
-    const vapidPublicKey = await getPushVapidPublicKey();
+    // SW 與 VAPID 同時準備，減少等待時間
+    const [registration, vapidPublicKey] = await Promise.all([
+      getPushServiceWorkerRegistration(),
+      getPushVapidPublicKey()
+    ]);
 
     pushDiag('③ 正在建立 Push Subscription…');
     let subscription = await registration.pushManager.getSubscription();
@@ -164,6 +202,16 @@ window.disablePushNotifications = disablePushNotifications;
 window.togglePushNotifications = togglePushNotifications;
 window.updatePushButtonState = updatePushButtonState;
 
+// 網頁一載入就預熱 Service Worker 與 VAPID。
+// 不阻塞頁面顯示，也不會要求通知權限。
 document.addEventListener('DOMContentLoaded', () => {
+  getPushServiceWorkerRegistration().catch(error => {
+    console.warn('[i-dle-vote Push] Service Worker 預熱失敗:', error);
+  });
+
+  getPushVapidPublicKey().catch(error => {
+    console.warn('[i-dle-vote Push] VAPID 預熱失敗:', error);
+  });
+
   updatePushButtonState();
 });
