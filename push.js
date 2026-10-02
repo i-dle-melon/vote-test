@@ -26,15 +26,14 @@ async function getPushVapidPublicKey() {
 }
 
 async function getPushServiceWorkerRegistration() {
-  if (!('serviceWorker' in navigator)) throw new Error('此瀏覽器不支援 Service Worker');
+  if (!('serviceWorker' in navigator)) {
+    throw new Error('此瀏覽器不支援 Service Worker');
+  }
 
   pushDiag('① 等待 Service Worker ready…');
 
-  const timeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Service Worker 超過 10 秒仍未 ready')), 10000)
-  );
+  const registration = await navigator.serviceWorker.ready;
 
-  const registration = await Promise.race([navigator.serviceWorker.ready, timeout]);
   pushDiag('① Service Worker ready');
   return registration;
 }
