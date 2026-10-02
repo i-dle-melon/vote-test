@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#00cd3c">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
     <title>i-dle* 追榜打歌投票應援指南</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
@@ -385,6 +391,33 @@ html {
     z-index: 999;                             /* 圖層順序：置於極高圖層（避免被其他元素遮擋） */
     opacity: 0.6;                             /* 透明度：預設為 60% 半透明 */
     transition: opacity 0.2s, transform 0.2s; /* 動畫過渡：透明度和縮放效果在 0.2 秒內平滑變化 */
+}
+
+
+/* Web Push 通知懸浮按鈕 */
+.push-fab {
+    position: fixed;
+    top: 330px;
+    right: 20px;
+    background-color: #00cd3c;
+    color: #000000;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 21px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    z-index: 999;
+    opacity: 0.6;
+    transition: opacity 0.2s, transform 0.2s;
+    user-select: none;
+}
+.push-fab:hover {
+    opacity: 1;
+    transform: scale(1.05);
 }
 
 .calendar-fab{
@@ -3318,13 +3351,27 @@ style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px; text-d
                     </div>
                                 <div class="image-wrapper">
                             <span class="step-badge">引用步驟 8</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/引用8.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">引用步驟 9</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/引用9.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">引用步驟 10</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/引用10.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">引用步驟 11</span>
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/引用11.jpg" alt="沒有圖片請重整頁面稍等載入">
+                    </div>
+                                <div class="image-wrapper">
+                            <span class="step-badge">引用步驟 12</span>
 </步驟後面可以新增文字，可備註>
         <span style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px;">複製範本:<br>#아이들 #idle
 #소연 #SOYEON
 #퇴사할게여 </span>  
-
-
-                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/引用8.jpg" alt="沒有圖片請重整頁面稍等載入">
+                        <img class="guide-image" src="https://i-dle-melon.github.io/vote/Tiktok/Tiktok/引用12.jpg" alt="沒有圖片請重整頁面稍等載入">
                     </div>
 
                     </div>
@@ -3425,6 +3472,8 @@ style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px; text-d
 
 <div class="calendar-fab"  onclick="openCalendar()">📅<span id="calendar-event-badge" class="calendar-fab-badge"></span>
 </div>
+<div class="push-fab" onclick="togglePushNotifications()">🔕
+</div>
 
 
 <!-- 公告彈窗 -->
@@ -3513,6 +3562,7 @@ function switchPage(pageId, isBackAction = false) {
     // 2. 控制懸浮按鈕 (📋 task-fab & 📅 calendar-fab)
     const taskFab = document.querySelector('.task-fab');
       const calendarFab = document.querySelector('.calendar-fab');
+      const pushFab = document.querySelector('.push-fab');
 
       if (taskFab) {
         // 懸浮按鈕通常用 flex 或 block 呈現，這裡首頁設 none，其他頁設 flex
@@ -3520,6 +3570,9 @@ function switchPage(pageId, isBackAction = false) {
       }
       if (calendarFab) {
         calendarFab.style.setProperty('display', isHomePage ? 'none' : 'flex', 'important');
+      }
+      if (pushFab) {
+        pushFab.style.setProperty('display', isHomePage ? 'none' : 'flex', 'important');
       }
 
     // 動態修改網址列（按上一頁觸發時不重複記錄）
@@ -4703,5 +4756,24 @@ const appConfig = {
         </div>
     </div>
 </div>
+
+<script src="./push.js"></script>
+
+<script>
+(function () {
+    if (!('serviceWorker' in navigator)) return;
+
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
+            .then(function (registration) {
+                console.log('[PWA] Service Worker registered:', registration.scope);
+            })
+            .catch(function (error) {
+                console.warn('[PWA] Service Worker registration failed:', error);
+            });
+    });
+})();
+</script>
+
 </body>
 </html>
