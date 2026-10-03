@@ -1417,6 +1417,55 @@ html {
 
 
 
+/* Web Push 通知操作載入遮罩：避免開關通知時重複點擊 */
+#push-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    pointer-events: auto;
+}
+
+#push-loading-overlay .push-loading-box {
+    min-width: 220px;
+    max-width: calc(100vw - 40px);
+    padding: 22px 24px;
+    border-radius: 16px;
+    background: rgba(30, 30, 30, 0.94);
+    color: #fff;
+    text-align: center;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.35);
+}
+
+#push-loading-overlay .push-loading-spinner {
+    width: 38px;
+    height: 38px;
+    margin: 0 auto 12px;
+    box-sizing: border-box;
+    border: 4px solid rgba(255, 255, 255, 0.28);
+    border-top-color: #fff;
+    border-radius: 50%;
+    display: block;
+    -webkit-animation: pushSpinnerRotate 0.8s linear infinite;
+    animation: pushSpinnerRotate 0.8s linear infinite;
+    will-change: transform;
+}
+
+@-webkit-keyframes pushSpinnerRotate {
+    from { -webkit-transform: rotate(0deg); transform: rotate(0deg); }
+    to { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+}
+
+@keyframes pushSpinnerRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 /* 行事曆資料載入遮罩：避免資料尚未完成時誤點其他功能 */
 #calendar-loading-overlay {
     position: fixed;
@@ -3526,8 +3575,18 @@ style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px; text-d
 
 <div class="calendar-fab"  onclick="openCalendar()">📅<span id="calendar-event-badge" class="calendar-fab-badge"></span>
 </div>
-<div class="push-fab" onclick="togglePushNotifications()">🔕
+<div class="push-fab" onclick="handlePushToggle()">🔕
 </div>
+
+<!-- Web Push 通知操作載入遮罩 -->
+<div id="push-loading-overlay" aria-live="polite" aria-busy="true">
+    <div class="push-loading-box">
+        <div class="push-loading-spinner" aria-hidden="true"></div>
+        <div id="push-loading-text">🔔 通知設定處理中…</div>
+    </div>
+</div>
+
+
 
 
 <!-- 公告彈窗 -->
@@ -4936,6 +4995,54 @@ const appConfig = {
         </div>
     </div>
 </div>
+
+<script>
+// Web Push 開關的載入狀態：不改動 push.js 核心邏輯，只在操作期間提供視覺回饋。
+function showPushLoading(message) {
+    const overlay = document.getElementById('push-loading-overlay');
+    const text = document.getElementById('push-loading-text');
+    if (text) text.textContent = message || '🔔 通知設定處理中…';
+    if (overlay) {
+        overlay.style.display = 'flex';
+        overlay.setAttribute('aria-busy', 'true');
+    }
+}
+
+function hidePushLoading() {
+    const overlay = document.getElementById('push-loading-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        overlay.setAttribute('aria-busy', 'false');
+    }
+}
+
+async function handlePushToggle() {
+    const button = document.querySelector('.push-fab');
+    if (button && button.dataset.pushBusy === 'true') return;
+
+    if (button) {
+        button.dataset.pushBusy = 'true';
+        button.style.pointerEvents = 'none';
+    }
+
+    showPushLoading('🔔 通知設定處理中…');
+
+    try {
+        if (typeof togglePushNotifications !== 'function') {
+            throw new Error('Push 通知功能尚未載入');
+        }
+        await togglePushNotifications();
+    } catch (error) {
+        console.error('[i-dle-vote Push UI] ERROR', error);
+    } finally {
+        hidePushLoading();
+        if (button) {
+            button.dataset.pushBusy = 'false';
+            button.style.pointerEvents = '';
+        }
+    }
+}
+</script>
 
 <script src="./push.js"></script>
 
