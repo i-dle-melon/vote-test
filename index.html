@@ -1416,6 +1416,51 @@ html {
 /* CSS結尾 */
 
 
+
+/* 行事曆資料載入遮罩：避免資料尚未完成時誤點其他功能 */
+#calendar-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    pointer-events: auto;
+}
+
+#calendar-loading-overlay .calendar-loading-box {
+    min-width: 220px;
+    max-width: calc(100vw - 40px);
+    padding: 22px 24px;
+    border-radius: 16px;
+    background: rgba(30, 30, 30, 0.94);
+    color: #fff;
+    text-align: center;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.35);
+}
+
+#calendar-loading-overlay .calendar-loading-spinner {
+    width: 38px;
+    height: 38px;
+    margin: 0 auto 12px;
+    border: 4px solid rgba(255, 255, 255, 0.28);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: calendarLoadingSpin 0.8s linear infinite;
+}
+
+#calendar-loading-overlay .calendar-loading-text {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+@keyframes calendarLoadingSpin {
+    to { transform: rotate(360deg); }
+}
+
     </style>
 </head>
 <body>
@@ -3401,6 +3446,15 @@ style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px; text-d
             </div>
         </div>
 
+
+    <!-- 行事曆資料載入遮罩：載入期間阻止使用者操作其他功能 -->
+    <div id="calendar-loading-overlay" aria-live="polite" aria-busy="true">
+        <div class="calendar-loading-box">
+            <div class="calendar-loading-spinner" aria-hidden="true"></div>
+            <div class="calendar-loading-text">📅 行事曆資料載入中…</div>
+        </div>
+    </div>
+
     <!-- 彈窗calendar 結構 -->
     <div class="modalcalendar-overlay" id="calendarModal" onclick="closeCalendarOnOverlay(event)">
         <div class="modal-content">
@@ -3654,28 +3708,46 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchEventsFromSheet();
 });
 
+// 顯示／隱藏行事曆資料載入遮罩
+function showCalendarLoading() {
+    const overlay = document.getElementById('calendar-loading-overlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        overlay.setAttribute('aria-busy', 'true');
+    }
+}
+
+function hideCalendarLoading() {
+    const overlay = document.getElementById('calendar-loading-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        overlay.setAttribute('aria-busy', 'false');
+    }
+}
+
 // 開啟行事曆彈窗
 function openCalendar() {
     const modal = document.getElementById('calendarModal');
     if (modal) modal.style.display = 'flex';
 
-    // 如果 Google Sheet 尚未載入完成，不要直接把空資料當成「沒有行程」
+    // 如果資料還沒完成，顯示全頁載入遮罩，避免使用者誤點其他功能。
     if (!eventsReady) {
-        const daysContainer = document.getElementById('calendar-days');
+        showCalendarLoading();
 
+        const daysContainer = document.getElementById('calendar-days');
         if (daysContainer) {
             daysContainer.innerHTML =
                 '<div style="grid-column:1 / -1; padding:30px 10px; text-align:center; color:#888;">📅 行事曆資料載入中…</div>';
         }
 
-        // 避免重複發出相同的第一次請求
+        // 若背景載入已經進行中，只等待目前請求完成，不重複發送請求。
         if (!eventsLoading) {
-            fetchEventsFromSheet();
+            fetchEventsFromSheet(false, true);
         }
-
         return;
     }
 
+    hideCalendarLoading();
     if (typeof renderCalendar === 'function') {
         renderCalendar();
     }
@@ -3709,7 +3781,8 @@ function goToToday() {
   
 // 當使用者按下重新整理按鈕時呼叫
 function forceRefreshEvents() {
-    fetchEventsFromSheet(true);
+    showCalendarLoading();
+    fetchEventsFromSheet(true, true);
 }
 
 // 計算今天起 30 天內的行事曆事件數量。
@@ -3769,9 +3842,13 @@ function updateCalendarEventBadge() {
 let eventsFetchRequestId = 0;
 let eventsFetchController = null;
 
-async function fetchEventsFromSheet(isForce = false) {
+async function fetchEventsFromSheet(isForce = false, showLoading = false) {
     const requestId = ++eventsFetchRequestId;
     eventsLoading = true;
+
+    if (showLoading) {
+        showCalendarLoading();
+    }
 
     // 新請求開始時取消前一個尚未完成的請求。
     if (eventsFetchController) {
@@ -3813,8 +3890,11 @@ async function fetchEventsFromSheet(isForce = false) {
                 console.log('1. CSV 原始解析結果：', results.data);
                 events = processSheetData(results.data);
                 console.log('2. 轉換後的 events 物件：', events);
+                eventsReady = true;
+                eventsLoading = false;
                 renderCalendar();
                 updateCalendarEventBadge();
+                hideCalendarLoading();
 
                 if (isForce) {
                     alert('資料已成功更新！');
@@ -3828,6 +3908,7 @@ async function fetchEventsFromSheet(isForce = false) {
         }
 
         eventsLoading = false;
+        hideCalendarLoading();
         console.error('抓取試算表失敗：', error);
 
         const daysContainer = document.getElementById('calendar-days');
