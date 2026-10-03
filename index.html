@@ -1417,6 +1417,60 @@ html {
 
 
 
+/* 全站資料載入遮罩：公告、TikTok、Google Sheet、詳細資料等 */
+#site-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100001;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    pointer-events: auto;
+}
+
+#site-loading-overlay .site-loading-box {
+    min-width: 220px;
+    max-width: calc(100vw - 40px);
+    padding: 22px 24px;
+    border-radius: 16px;
+    background: rgba(30, 30, 30, 0.94);
+    color: #fff;
+    text-align: center;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.35);
+}
+
+#site-loading-overlay .site-loading-spinner {
+    width: 38px;
+    height: 38px;
+    margin: 0 auto 12px;
+    box-sizing: border-box;
+    border: 4px solid rgba(255, 255, 255, 0.28);
+    border-top-color: #fff;
+    border-radius: 50%;
+    display: block;
+    -webkit-animation: siteLoadingSpinnerRotate 0.8s linear infinite;
+    animation: siteLoadingSpinnerRotate 0.8s linear infinite;
+    will-change: transform;
+}
+
+#site-loading-overlay .site-loading-text {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+@-webkit-keyframes siteLoadingSpinnerRotate {
+    from { -webkit-transform: rotate(0deg); transform: rotate(0deg); }
+    to { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+}
+
+@keyframes siteLoadingSpinnerRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 /* Web Push 通知操作載入遮罩：避免開關通知時重複點擊 */
 #push-loading-overlay {
     position: fixed;
@@ -1464,6 +1518,38 @@ html {
 @keyframes pushSpinnerRotate {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+}
+
+/* 圖片本身的載入效果：只在圖片尚未完成時顯示小旋轉圈 */
+.image-loading-host {
+    position: relative !important;
+}
+
+.image-loading-host > .image-loading-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 28px;
+    height: 28px;
+    margin: -14px 0 0 -14px;
+    box-sizing: border-box;
+    border: 3px solid rgba(255, 255, 255, 0.25);
+    border-top-color: #fff;
+    border-radius: 50%;
+    -webkit-animation: siteLoadingSpinnerRotate 0.8s linear infinite;
+    animation: siteLoadingSpinnerRotate 0.8s linear infinite;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.image-loading-pending {
+    opacity: 0.45;
+    transition: opacity 0.2s ease;
+}
+
+.image-loading-complete {
+    opacity: 1;
+    transition: opacity 0.2s ease;
 }
 
 /* 行事曆資料載入遮罩：避免資料尚未完成時誤點其他功能 */
@@ -3570,12 +3656,20 @@ style="color: #ccc; font-size: 13px; font-weight: bold; margin-left:12px; text-d
 <div class="back-to-top" onclick="scrollToTop()">⤒
 </div>
 
-<div class="task-fab" onclick="document.getElementById('sheet-modal').style.display='flex'">📋
+<div class="task-fab" onclick="openSheetModal()">📋
 </div>
 
 <div class="calendar-fab"  onclick="openCalendar()">📅<span id="calendar-event-badge" class="calendar-fab-badge"></span>
 </div>
 <div class="push-fab" onclick="handlePushToggle()">🔕
+</div>
+
+<!-- 全站資料載入遮罩 -->
+<div id="site-loading-overlay" aria-live="polite" aria-busy="false">
+    <div class="site-loading-box">
+        <div class="site-loading-spinner" aria-hidden="true"></div>
+        <div id="site-loading-text" class="site-loading-text">資料載入中…</div>
+    </div>
 </div>
 
 <!-- Web Push 通知操作載入遮罩 -->
@@ -4348,6 +4442,7 @@ let publishedAnnouncement = {
 };
 
 async function loadPublishedAnnouncement() {
+    showSiteLoading('📢 公告資料載入中…');
     try {
         const url = ANNOUNCEMENT_CSV_URL + '&_t=' + Date.now();
 
@@ -4422,6 +4517,8 @@ async function loadPublishedAnnouncement() {
         }
 
         console.error('❌ 無法讀取已發布公告：', error);
+    } finally {
+        hideSiteLoading();
     }
 }
 
@@ -4589,13 +4686,53 @@ document.addEventListener('DOMContentLoaded', function() {
 <div id="sheet-modal" class="modal-overlay">
     <div class="modal-container sheet-container">
 <div class="iframe-wrapper">
-        <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSehR-tbVnw2MN6EF2zEWP7Nq5bFoMyH0dNbG-j9mrx-dzlrw7AZ5W7A6GBlXcW8bKjNASGsm4fWDJ0/pubhtml?gid=0&single=true&widget=false&headers=false&rm=demo&range=A2:F28" class="modal-iframe"></iframe>
+        <iframe id="sheet-iframe" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSehR-tbVnw2MN6EF2zEWP7Nq5bFoMyH0dNbG-j9mrx-dzlrw7AZ5W7A6GBlXcW8bKjNASGsm4fWDJ0/pubhtml?gid=0&single=true&widget=false&headers=false&rm=demo&range=A2:F28" class="modal-iframe"></iframe>
 </div>
         <button id="close-sheet-modal" class="modal-close-btn">✕ 關閉</button>
     </div>
 </div>
 
 <script>
+
+// 開啟 Google Sheet 試算表：顯示載入遮罩直到 iframe 完成載入。
+let sheetLoadingActive = false;
+let sheetLoadingTimer = null;
+
+function openSheetModal() {
+    const modal = document.getElementById('sheet-modal');
+    const iframe = document.getElementById('sheet-iframe');
+    if (!modal || !iframe) return;
+
+    modal.style.display = 'flex';
+
+    // iframe 如果早已在背景完成載入，就不再顯示多餘的載入畫面。
+    if (iframe.dataset.sheetLoaded === 'true') {
+        return;
+    }
+
+    sheetLoadingActive = true;
+    showSiteLoading('📄 試算表載入中…');
+
+    const done = function() {
+        if (!sheetLoadingActive) return;
+        sheetLoadingActive = false;
+        iframe.dataset.sheetLoaded = 'true';
+        if (sheetLoadingTimer) clearTimeout(sheetLoadingTimer);
+        hideSiteLoading();
+    };
+
+    iframe.addEventListener('load', done, { once: true });
+    sheetLoadingTimer = setTimeout(done, 15000);
+}
+
+// 記錄 Google Sheet iframe 是否在背景已經載入完成。
+(function bindSheetLoadState() {
+    const iframe = document.getElementById('sheet-iframe');
+    if (!iframe) return;
+    iframe.addEventListener('load', function() {
+        iframe.dataset.sheetLoaded = 'true';
+    });
+})();
 
 // 綁定關閉按鈕點擊事件
 document.getElementById('close-score-modal').addEventListener('click', function() {
@@ -4673,7 +4810,16 @@ document.getElementById('sheet-modal').addEventListener('click', function(e) {
 
 // 觸發彈窗顯示的函式（可綁定在任何頁面的按鈕上）
         function openScoreModal() {
-            document.getElementById('score-modal').style.display = 'flex';
+            const modal = document.getElementById('score-modal');
+            const image = modal ? modal.querySelector('img') : null;
+            if (!modal) return;
+
+            modal.style.display = 'flex';
+            if (image && !image.complete) {
+                showSiteLoading('📊 詳細資料載入中…');
+                image.addEventListener('load', hideSiteLoading, { once: true });
+                image.addEventListener('error', hideSiteLoading, { once: true });
+            }
         }
 
   // 替換成你部署後的 Cloudflare Workers 網址
@@ -4738,6 +4884,7 @@ function openTiktokTemplateModal() {
 
 // 讀取「已發布Tiktok引用範本」
 async function loadTiktokTemplate() {
+    showSiteLoading('🎵 TikTok 範本載入中…');
     try {
         const url = TIKTOK_TEMPLATE_CSV_URL + '&_t=' + Date.now();
 
@@ -4801,6 +4948,8 @@ async function loadTiktokTemplate() {
         // 載入失敗時保持禁止複製，避免把錯誤訊息當成範本複製出去。
         tiktokTemplateReady = false;
         updateTiktokCopyButtonState();
+    } finally {
+        hideSiteLoading();
     }
 }
 
@@ -4980,6 +5129,54 @@ const appConfig = {
 };
 
 
+// 圖片本身載入效果：Lazy Load 圖片接近畫面時顯示小旋轉圈。
+function initImageLoadingEffects() {
+    const images = document.querySelectorAll('img[loading="lazy"]');
+
+    images.forEach(function(img) {
+        if (img.dataset.loadingEffectInitialized === 'true') return;
+        img.dataset.loadingEffectInitialized = 'true';
+
+        const parent = img.parentElement;
+        if (!parent) return;
+
+        // 不改變圖片原本的 DOM 結構；只在原父容器上放一個小旋轉圈。
+        parent.classList.add('image-loading-host');
+
+        let spinner = null;
+        for (const child of parent.children) {
+            if (child !== img && child.classList.contains('image-loading-spinner')) {
+                spinner = child;
+                break;
+            }
+        }
+
+        if (!spinner) {
+            spinner = document.createElement('span');
+            spinner.className = 'image-loading-spinner';
+            spinner.setAttribute('aria-hidden', 'true');
+            parent.appendChild(spinner);
+        }
+
+        function markLoaded() {
+            img.classList.remove('image-loading-pending');
+            img.classList.add('image-loading-complete');
+            if (spinner) spinner.remove();
+        }
+
+        img.addEventListener('load', markLoaded, { once: true });
+        img.addEventListener('error', markLoaded, { once: true });
+
+        if (img.complete) {
+            markLoaded();
+        } else {
+            img.classList.add('image-loading-pending');
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initImageLoadingEffects);
+
 </script>
 
 
@@ -4997,6 +5194,31 @@ const appConfig = {
 </div>
 
 <script>
+// 全站資料載入遮罩：支援同時存在多個載入工作，避免互相提前關閉。
+let siteLoadingCount = 0;
+
+function showSiteLoading(message = '資料載入中…') {
+    siteLoadingCount++;
+    const overlay = document.getElementById('site-loading-overlay');
+    const text = document.getElementById('site-loading-text');
+    if (text) text.textContent = message;
+    if (overlay) {
+        overlay.style.display = 'flex';
+        overlay.setAttribute('aria-busy', 'true');
+    }
+}
+
+function hideSiteLoading() {
+    siteLoadingCount = Math.max(0, siteLoadingCount - 1);
+    if (siteLoadingCount > 0) return;
+
+    const overlay = document.getElementById('site-loading-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        overlay.setAttribute('aria-busy', 'false');
+    }
+}
+
 // Web Push 開關的載入狀態：不改動 push.js 核心邏輯，只在操作期間提供視覺回饋。
 function showPushLoading(message) {
     const overlay = document.getElementById('push-loading-overlay');
