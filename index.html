@@ -3750,11 +3750,46 @@ function switchPage(pageId, isBackAction = false) {
     });
     targetPage.classList.add('active');
 
+    // 判斷是否為首頁
+    const isHomePage = (pageId === 'home-page' || pageId === 'home' || pageId === '');
+
+    // 只在使用者真正進入對應功能頁面時顯示 Loading。
+    // 背景預載入不會讓首頁或其他頁面被遮罩。
+    if (pageId === 'Tiktok-page' && !tiktokTemplateReady) {
+        showSiteLoading('🎵 TikTok 範本載入中…');
+        const waitTiktok = setInterval(function() {
+            const stillOnTiktokPage = document.querySelector('.page.active')?.id === 'Tiktok-page';
+            if (!stillOnTiktokPage || tiktokTemplateReady) {
+                clearInterval(waitTiktok);
+                hideSiteLoading();
+            }
+        }, 100);
+        setTimeout(function() {
+            clearInterval(waitTiktok);
+            hideSiteLoading();
+        }, 15000);
+    }
+
+    // 公告內容只在有公告文字的功能頁面等待；首頁不顯示公告 Loading。
+    const hasPageAnnouncement = !!document.getElementById('page-announcement');
+    if (!isHomePage && hasPageAnnouncement && !announcementReady) {
+        showSiteLoading('📢 公告資料載入中…');
+        const waitAnnouncement = setInterval(function() {
+            const stillOnContentPage = document.querySelector('.page.active')?.id !== 'home-page';
+            if (!stillOnContentPage || announcementReady) {
+                clearInterval(waitAnnouncement);
+                hideSiteLoading();
+            }
+        }, 100);
+        setTimeout(function() {
+            clearInterval(waitAnnouncement);
+            hideSiteLoading();
+        }, 15000);
+    }
+
     // 滾動回頂部
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // 判斷是否為首頁 (先在最外面宣告，讓後面大家都能用)
-        const isHomePage = (pageId === 'home-page' || pageId === 'home' || pageId === '');
 
     // 1：控制公告（首頁隱藏，其他頁面顯示）
     const warning = document.getElementById('rotateWarning');
@@ -4442,7 +4477,6 @@ let publishedAnnouncement = {
 };
 
 async function loadPublishedAnnouncement() {
-    showSiteLoading('📢 公告資料載入中…');
     try {
         const url = ANNOUNCEMENT_CSV_URL + '&_t=' + Date.now();
 
@@ -4517,8 +4551,6 @@ async function loadPublishedAnnouncement() {
         }
 
         console.error('❌ 無法讀取已發布公告：', error);
-    } finally {
-        hideSiteLoading();
     }
 }
 
@@ -4620,6 +4652,7 @@ function checkPublishedAnnouncement() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // 公告與 TikTok 範本可在背景預載入，但背景載入時不顯示全頁 Loading。
     loadPublishedAnnouncement();
     loadTiktokTemplate();
 });
@@ -4884,7 +4917,6 @@ function openTiktokTemplateModal() {
 
 // 讀取「已發布Tiktok引用範本」
 async function loadTiktokTemplate() {
-    showSiteLoading('🎵 TikTok 範本載入中…');
     try {
         const url = TIKTOK_TEMPLATE_CSV_URL + '&_t=' + Date.now();
 
@@ -4948,8 +4980,6 @@ async function loadTiktokTemplate() {
         // 載入失敗時保持禁止複製，避免把錯誤訊息當成範本複製出去。
         tiktokTemplateReady = false;
         updateTiktokCopyButtonState();
-    } finally {
-        hideSiteLoading();
     }
 }
 
